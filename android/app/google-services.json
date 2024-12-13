@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1041204407965",
+    "project_id": "costcater-b3f3d",
+    "storage_bucket": "costcater-b3f3d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1041204407965:android:97aba618053714e36d6e74",
+        "android_client_info": {
+          "package_name": "com.company.costcater"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBuXeRb9IgrohDqAe97PsLyFTA-J13mBTQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

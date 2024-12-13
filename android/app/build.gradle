@@ -1,0 +1,47 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    id "dev.flutter.flutter-gradle-plugin"
+    id 'com.google.gms.google-services' // Firebase plugin
+}
+
+android {
+
+    namespace = "com.company.costcater.costcater"
+    compileSdk = flutter.compileSdkVersion
+    ndkVersion = flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_1_8
+    }
+
+    defaultConfig {
+        // Ensure applicationId matches your Firebase configuration
+        applicationId = "com.company.costcater"
+        minSdk = 23
+        targetSdk = flutter.targetSdkVersion
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+    }
+
+    buildFeatures {
+        buildConfig true  // Enable BuildConfig to allow custom fields for Firebase
+    }
+
+    buildTypes {
+        release {
+            // Use signingConfig for release build
+            signingConfig = signingConfigs.debug // Replace with your release signingConfig
+        }
+    }
+}
+
+flutter {
+    source = "../.."
+}
