@@ -1,8 +1,11 @@
+import 'package:costcater/pages/login_page.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'pages/homepage.dart';
-import 'pages/cart_page.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(const MyApp());
 }
 
@@ -16,20 +19,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const HomePage(),
-      routes: {
-        '/cart': (context) {
-          // Ensure cartItems is a List<String>
-          final List<String> cartItems = []; // Initialize as List<String>
-
-          return CartPage(
-            cartItems: cartItems,
-            removeItemFromCart: (String item) {
-              // Implement your logic to remove an item from the cart
-            },
-          );
-        },
-      },
+      home: LoginPage(), // This will be the entry point
     );
   }
 }

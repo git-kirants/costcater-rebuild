@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'cart_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -9,23 +11,64 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  List<String> cartItems = [];
+  late String userId; // Current user's ID
+  late CollectionReference cartRef; // Firestore cart reference
 
-  void addToCart(String item) {
-    setState(() {
-      cartItems.add(item);
+  @override
+  void initState() {
+    super.initState();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      userId = user.uid;
+      cartRef = FirebaseFirestore.instance.collection('carts');
+    }
+  }
+
+  // Function to add a single item to Firestore cart
+  Future<void> addToCart(String item) async {
+    final docRef = cartRef.doc(userId);
+
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      final snapshot = await transaction.get(docRef);
+
+      if (!snapshot.exists) {
+        // If the cart doesn't exist, create it with the item
+        transaction.set(docRef, {
+          'cartItems': [item],
+        });
+      } else {
+        // If the cart exists, update the array
+        List<dynamic> cartItems = snapshot['cartItems'];
+        if (!cartItems.contains(item)) {
+          cartItems.add(item);
+          transaction.update(docRef, {'cartItems': cartItems});
+        }
+      }
     });
   }
 
-  void addEntireTierToCart(List<String> items) {
-    setState(() {
-      cartItems.addAll(items);
-    });
-  }
+  // Function to add an entire tier to Firestore cart
+  Future<void> addTierToCart(List<String> items) async {
+    final docRef = cartRef.doc(userId);
 
-  void removeItemFromCart(String item) {
-    setState(() {
-      cartItems.remove(item);
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      final snapshot = await transaction.get(docRef);
+
+      if (!snapshot.exists) {
+        // If the cart doesn't exist, add all tier items
+        transaction.set(docRef, {
+          'cartItems': items,
+        });
+      } else {
+        // If the cart exists, update the array
+        List<dynamic> cartItems = snapshot['cartItems'];
+        for (var item in items) {
+          if (!cartItems.contains(item)) {
+            cartItems.add(item);
+          }
+        }
+        transaction.update(docRef, {'cartItems': cartItems});
+      }
     });
   }
 
@@ -49,6 +92,7 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Menu'),
+        backgroundColor: Colors.blueAccent,
         actions: [
           IconButton(
             icon: const Icon(Icons.shopping_cart),
@@ -56,10 +100,7 @@ class _HomePageState extends State<HomePage> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => CartPage(
-                    cartItems: cartItems,
-                    removeItemFromCart: removeItemFromCart, // Pass the callback
-                  ),
+                  builder: (context) => const CartPage(),
                 ),
               );
             },
@@ -73,24 +114,40 @@ class _HomePageState extends State<HomePage> {
           return Card(
             margin: const EdgeInsets.all(8.0),
             child: ExpansionTile(
-              title: Text(tier['tier']),
+              title: Text(
+                tier['tier'],
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
               children: [
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: ElevatedButton(
-                    onPressed: () {
-                      addEntireTierToCart(List<String>.from(tier['items']));
+                    onPressed: () async {
+                      await addTierToCart(List<String>.from(tier['items']));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content:
+                                Text('${tier['tier']} tier added to cart!')),
+                      );
                     },
                     child: const Text('Add Entire Tier to Cart'),
                   ),
                 ),
                 ...tier['items'].map<Widget>((item) {
                   return ListTile(
-                    title: Text(item),
+                    title: Text(
+                      item,
+                      style: const TextStyle(fontSize: 16),
+                    ),
                     trailing: IconButton(
-                      icon: const Icon(Icons.add_shopping_cart),
-                      onPressed: () {
-                        addToCart(item);
+                      icon: const Icon(Icons.add_shopping_cart,
+                          color: Colors.green),
+                      onPressed: () async {
+                        await addToCart(item);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('$item added to cart!')),
+                        );
                       },
                     ),
                   );
