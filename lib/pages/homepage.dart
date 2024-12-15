@@ -25,7 +25,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   // Function to add a single item to Firestore cart
-  Future<void> addToCart(String item) async {
+  Future<void> addToCart(String name, double price) async {
     final docRef = cartRef.doc(userId);
 
     await FirebaseFirestore.instance.runTransaction((transaction) async {
@@ -34,13 +34,15 @@ class _HomePageState extends State<HomePage> {
       if (!snapshot.exists) {
         // If the cart doesn't exist, create it with the item
         transaction.set(docRef, {
-          'cartItems': [item],
+          'cartItems': [
+            {'name': name, 'price': price}
+          ],
         });
       } else {
         // If the cart exists, update the array
         List<dynamic> cartItems = snapshot['cartItems'];
-        if (!cartItems.contains(item)) {
-          cartItems.add(item);
+        if (!cartItems.any((element) => element['name'] == name)) {
+          cartItems.add({'name': name, 'price': price});
           transaction.update(docRef, {'cartItems': cartItems});
         }
       }
@@ -48,7 +50,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   // Function to add an entire tier to Firestore cart
-  Future<void> addTierToCart(List<String> items) async {
+  Future<void> addTierToCart(List<Map<String, dynamic>> items) async {
     final docRef = cartRef.doc(userId);
 
     await FirebaseFirestore.instance.runTransaction((transaction) async {
@@ -63,7 +65,7 @@ class _HomePageState extends State<HomePage> {
         // If the cart exists, update the array
         List<dynamic> cartItems = snapshot['cartItems'];
         for (var item in items) {
-          if (!cartItems.contains(item)) {
+          if (!cartItems.any((element) => element['name'] == item['name'])) {
             cartItems.add(item);
           }
         }
@@ -75,15 +77,30 @@ class _HomePageState extends State<HomePage> {
   final List<Map<String, dynamic>> menuTiers = [
     {
       'tier': 'Gold',
-      'items': ['Steak', 'Lobster', 'Caviar']
+      'price': 100.0,
+      'items': [
+        {'name': 'Steak', 'price': 40.0},
+        {'name': 'Lobster', 'price': 30.0},
+        {'name': 'Caviar', 'price': 30.0}
+      ]
     },
     {
       'tier': 'Silver',
-      'items': ['Chicken', 'Fish', 'Salad']
+      'price': 50.0,
+      'items': [
+        {'name': 'Chicken', 'price': 15.0},
+        {'name': 'Fish', 'price': 15.0},
+        {'name': 'Salad', 'price': 20.0}
+      ]
     },
     {
       'tier': 'Bronze',
-      'items': ['Pizza', 'Burger', 'Fries']
+      'price': 25.0,
+      'items': [
+        {'name': 'Pizza', 'price': 10.0},
+        {'name': 'Burger', 'price': 8.0},
+        {'name': 'Fries', 'price': 7.0}
+      ]
     },
   ];
 
@@ -124,31 +141,44 @@ class _HomePageState extends State<HomePage> {
                   padding: const EdgeInsets.all(8.0),
                   child: ElevatedButton(
                     onPressed: () async {
-                      await addTierToCart(List<String>.from(tier['items']));
+                      await addTierToCart(
+                          List<Map<String, dynamic>>.from(tier['items']));
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                             content:
                                 Text('${tier['tier']} tier added to cart!')),
                       );
                     },
-                    child: const Text('Add Entire Tier to Cart'),
+                    child: Text(
+                        'Add Entire ${tier['tier']} Tier (\$${tier['price']}) to Cart'),
                   ),
                 ),
                 ...tier['items'].map<Widget>((item) {
                   return ListTile(
                     title: Text(
-                      item,
+                      item['name'],
                       style: const TextStyle(fontSize: 16),
                     ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.add_shopping_cart,
-                          color: Colors.green),
-                      onPressed: () async {
-                        await addToCart(item);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('$item added to cart!')),
-                        );
-                      },
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '\$${item['price']}',
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.add_shopping_cart,
+                              color: Colors.green),
+                          onPressed: () async {
+                            await addToCart(item['name'], item['price']);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                  content:
+                                      Text('${item['name']} added to cart!')),
+                            );
+                          },
+                        ),
+                      ],
                     ),
                   );
                 }).toList(),

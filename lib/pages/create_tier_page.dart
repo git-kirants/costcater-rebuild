@@ -10,13 +10,18 @@ class CreateTierPage extends StatefulWidget {
 class _CreateTierPageState extends State<CreateTierPage> {
   final TextEditingController _tierController = TextEditingController();
   final TextEditingController _itemController = TextEditingController();
-  List<String> _items = [];
+  final TextEditingController _priceController = TextEditingController();
+  List<Map<String, String>> _items = [];
 
   void _addItem() {
-    if (_itemController.text.isNotEmpty) {
+    if (_itemController.text.isNotEmpty && _priceController.text.isNotEmpty) {
       setState(() {
-        _items.add(_itemController.text);
+        _items.add({
+          'name': _itemController.text,
+          'price': _priceController.text,
+        });
         _itemController.clear();
+        _priceController.clear();
       });
     }
   }
@@ -51,13 +56,20 @@ class _CreateTierPageState extends State<CreateTierPage> {
               controller: _itemController,
               decoration: const InputDecoration(labelText: 'Item Name'),
             ),
+            TextField(
+              controller: _priceController,
+              decoration: const InputDecoration(labelText: 'Item Price'),
+              keyboardType: TextInputType.number,
+            ),
             ElevatedButton(
               onPressed: _addItem,
               child: const Text('Add Item'),
             ),
             const SizedBox(height: 20),
             Text('Items:'),
-            ..._items.map((item) => Text(item)).toList(),
+            ..._items.map((item) {
+              return Text('${item['name']} - \$${item['price']}');
+            }).toList(),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _createTier,
