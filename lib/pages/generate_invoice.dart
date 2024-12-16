@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'dart:io';
+import 'package:open_file/open_file.dart';
 
 class GenerateInvoicePage extends StatelessWidget {
   final Map<String, dynamic> customerDetails;
@@ -24,6 +28,83 @@ class GenerateInvoicePage extends StatelessWidget {
 
   double calculateTotal(double subtotal, double tax) {
     return subtotal + tax;
+  }
+
+  // Function to generate the PDF
+  Future<void> generatePDF(BuildContext context) async {
+    final pdf = pw.Document();
+
+    // Calculate totals
+    double subtotal = calculateSubtotal();
+    double tax = calculateTax(subtotal);
+    double total = calculateTotal(subtotal, tax);
+
+    // Create PDF content
+    pdf.addPage(
+      pw.MultiPage(
+        build: (pw.Context context) => [
+          // Title
+          pw.Center(
+            child: pw.Text(
+              'Invoice',
+              style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
+            ),
+          ),
+          pw.SizedBox(height: 20),
+
+          // Customer Information
+          pw.Text('Customer Information',
+              style:
+                  pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+          pw.SizedBox(height: 10),
+          pw.Table.fromTextArray(
+            data: [
+              ['Name', customerDetails['name']],
+              ['Mobile', customerDetails['mobile']],
+              ['Email', customerDetails['email']],
+              ['Address', customerDetails['address']],
+              ['Venue', customerDetails['venue']],
+              ['Order Date', customerDetails['orderDate']],
+            ],
+          ),
+          pw.SizedBox(height: 20),
+
+          // Items Ordered
+          pw.Text('Items Ordered',
+              style:
+                  pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+          pw.SizedBox(height: 10),
+          pw.Table.fromTextArray(
+            headers: ['Item', 'Price'],
+            data: cartItems.map((item) {
+              return [item['name'] ?? 'Unknown Item', '\$${item['price']}'];
+            }).toList(),
+          ),
+          pw.SizedBox(height: 20),
+
+          // Invoice Summary
+          pw.Text('Invoice Summary',
+              style:
+                  pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+          pw.SizedBox(height: 10),
+          pw.Table.fromTextArray(
+            data: [
+              ['Subtotal', '\$${subtotal.toStringAsFixed(2)}'],
+              ['Tax (10%)', '\$${tax.toStringAsFixed(2)}'],
+              ['Total', '\$${total.toStringAsFixed(2)}'],
+            ],
+          ),
+        ],
+      ),
+    );
+
+    // Save the PDF in a temporary location
+    final directory = Directory.systemTemp; // Use system temporary directory
+    final file = File('${directory.path}/invoice.pdf');
+    await file.writeAsBytes(await pdf.save());
+
+    // Open the generated PDF
+    OpenFile.open(file.path);
   }
 
   @override
@@ -103,7 +184,6 @@ class GenerateInvoicePage extends StatelessWidget {
               columnWidths: {
                 0: FixedColumnWidth(200.0),
                 1: FixedColumnWidth(100.0),
-                2: FixedColumnWidth(100.0),
               },
               children: [
                 TableRow(children: [
@@ -160,8 +240,8 @@ class GenerateInvoicePage extends StatelessWidget {
             // Download Button
             Center(
               child: ElevatedButton(
-                onPressed: () {
-                  // Implement PDF generation logic here
+                onPressed: () async {
+                  await generatePDF(context);
                 },
                 child: const Text('Download Invoice',
                     style: TextStyle(fontSize: 16)),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'cart_page.dart';
+import 'create_tier_page.dart'; // Import your CreateTierPage
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -24,7 +25,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // Function to add a single item to Firestore cart
   Future<void> addToCart(String name, double price) async {
     final docRef = cartRef.doc(userId);
 
@@ -32,14 +32,12 @@ class _HomePageState extends State<HomePage> {
       final snapshot = await transaction.get(docRef);
 
       if (!snapshot.exists) {
-        // If the cart doesn't exist, create it with the item
         transaction.set(docRef, {
           'cartItems': [
             {'name': name, 'price': price}
           ],
         });
       } else {
-        // If the cart exists, update the array
         List<dynamic> cartItems = snapshot['cartItems'];
         if (!cartItems.any((element) => element['name'] == name)) {
           cartItems.add({'name': name, 'price': price});
@@ -49,7 +47,6 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  // Function to add an entire tier to Firestore cart
   Future<void> addTierToCart(List<Map<String, dynamic>> items) async {
     final docRef = cartRef.doc(userId);
 
@@ -57,12 +54,10 @@ class _HomePageState extends State<HomePage> {
       final snapshot = await transaction.get(docRef);
 
       if (!snapshot.exists) {
-        // If the cart doesn't exist, add all tier items
         transaction.set(docRef, {
           'cartItems': items,
         });
       } else {
-        // If the cart exists, update the array
         List<dynamic> cartItems = snapshot['cartItems'];
         for (var item in items) {
           if (!cartItems.any((element) => element['name'] == item['name'])) {
@@ -74,7 +69,7 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  final List<Map<String, dynamic>> menuTiers = [
+  List<Map<String, dynamic>> menuTiers = [
     {
       'tier': 'Gold',
       'price': 100.0,
@@ -103,6 +98,29 @@ class _HomePageState extends State<HomePage> {
       ]
     },
   ];
+
+  void _navigateToCreateTier() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const CreateTierPage(),
+      ),
+    );
+
+    if (result != null && result is Map<String, dynamic>) {
+      setState(() {
+        menuTiers.add({
+          'tier': result['tier'],
+          'price': result['items']
+              .fold(0.0, (sum, item) => sum + (item['price'] as double)),
+          'items': result['items'],
+        });
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${result['tier']} tier created!')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -186,6 +204,12 @@ class _HomePageState extends State<HomePage> {
             ),
           );
         },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _navigateToCreateTier, // Navigate to CreateTierPage
+        child: const Icon(Icons.add), // "+" icon for Add Tier
+        backgroundColor: Colors.blueAccent,
+        tooltip: 'Add New Tier',
       ),
     );
   }
