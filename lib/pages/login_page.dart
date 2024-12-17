@@ -71,17 +71,17 @@ class _LoginPageState extends State<LoginPage> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                'Welcome Back',
-                style: TextStyle(
-                  fontFamily: 'SFProDisplay',
-                  fontSize: 32,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black87,
+              // Replace the 'Welcome Back' text with the logo image
+              const SizedBox(height: 50), // Adjust to your preference
+              Center(
+                child: Image.asset(
+                  'assets/logos/costcaterlogo.jpg', // Path to your logo image
+                  height: 200, // Adjust the height as necessary
+                  width: 200, // Adjust the width as necessary
                 ),
-                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
               Text(

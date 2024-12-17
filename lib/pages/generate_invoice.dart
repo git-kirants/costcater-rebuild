@@ -3,6 +3,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'dart:io';
 import 'package:open_file/open_file.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 class GenerateInvoicePage extends StatelessWidget {
   final Map<String, dynamic> customerDetails;
@@ -12,11 +13,10 @@ class GenerateInvoicePage extends StatelessWidget {
     required this.customerDetails,
     required this.cartItems,
   }) {
-    // Debugging cartItms
     debugPrint("Received cartItems: $cartItems");
   }
 
-  // Existing calculation methods remain the same
+  // Calculation methods
   double calculateSubtotal() {
     double subtotal = 0.0;
     for (var item in cartItems) {
@@ -35,81 +35,101 @@ class GenerateInvoicePage extends StatelessWidget {
     return (subtotal + tax) * plates;
   }
 
-  // PDF generation method remains the same
+  // PDF generation
   Future<void> generatePDF(BuildContext context, double plates) async {
-    final pdf = pw.Document();
+    try {
+      final pdf = pw.Document();
 
-    // Calculate totals
-    double subtotal = calculateSubtotal();
-    double tax = calculateTax(subtotal);
-    double total = calculateTotal(subtotal, tax, plates);
+      final sfProRegular = pw.Font.ttf(
+          await rootBundle.load("assets/fonts/SF-Pro-Display-Regular.otf"));
+      final sfProBold = pw.Font.ttf(
+          await rootBundle.load("assets/fonts/SF-Pro-Display-Bold.otf"));
 
-    // Create PDF content
-    pdf.addPage(
-      pw.MultiPage(
-        build: (pw.Context context) => [
-          // Title
-          pw.Center(
-            child: pw.Text(
-              'Invoice',
-              style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
+      double subtotal = calculateSubtotal();
+      double tax = calculateTax(subtotal);
+      double total = calculateTotal(subtotal, tax, plates);
+
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          margin: pw.EdgeInsets.all(32),
+          build: (pw.Context context) => [
+            pw.Center(
+              child: pw.Text(
+                'Invoice',
+                style: pw.TextStyle(fontSize: 28, font: sfProBold),
+              ),
             ),
-          ),
-          pw.SizedBox(height: 20),
+            pw.SizedBox(height: 20),
+            pw.Text('Customer Information',
+                style: pw.TextStyle(fontSize: 18, font: sfProBold)),
+            pw.SizedBox(height: 10),
+            pw.TableHelper.fromTextArray(
+              columnWidths: {
+                0: pw.FlexColumnWidth(1),
+                1: pw.FlexColumnWidth(2),
+              },
+              cellAlignment: pw.Alignment.centerLeft,
+              data: [
+                ['Name', customerDetails['name'] ?? 'N/A'],
+                ['Mobile', customerDetails['mobile'] ?? 'N/A'],
+                ['Email', customerDetails['email'] ?? 'N/A'],
+                ['Address', customerDetails['address'] ?? 'N/A'],
+                ['Venue', customerDetails['venue'] ?? 'N/A'],
+                ['Order Date', customerDetails['orderDate'] ?? 'N/A'],
+              ],
+              headerStyle: pw.TextStyle(font: sfProBold),
+              cellStyle: pw.TextStyle(font: sfProRegular),
+            ),
+            pw.SizedBox(height: 20),
+            pw.Text('Items Ordered',
+                style: pw.TextStyle(fontSize: 18, font: sfProBold)),
+            pw.SizedBox(height: 10),
+            pw.TableHelper.fromTextArray(
+              headers: ['Item', 'Price'],
+              columnWidths: {
+                0: pw.FlexColumnWidth(2),
+                1: pw.FlexColumnWidth(1),
+              },
+              headerStyle: pw.TextStyle(font: sfProBold),
+              cellStyle: pw.TextStyle(font: sfProRegular),
+              data: cartItems.map((item) {
+                return [
+                  item['item'] ?? 'Unknown Item',
+                  '\$${(item['price'] ?? 0.0).toStringAsFixed(2)}'
+                ];
+              }).toList(),
+            ),
+            pw.SizedBox(height: 20),
+            pw.Text('Invoice Summary',
+                style: pw.TextStyle(fontSize: 18, font: sfProBold)),
+            pw.SizedBox(height: 10),
+            pw.TableHelper.fromTextArray(
+              columnWidths: {
+                0: pw.FlexColumnWidth(1),
+                1: pw.FlexColumnWidth(1),
+              },
+              headerStyle: pw.TextStyle(font: sfProBold),
+              cellStyle: pw.TextStyle(font: sfProRegular),
+              cellAlignment: pw.Alignment.centerRight,
+              data: [
+                ['Subtotal', '\$${subtotal.toStringAsFixed(2)}'],
+                ['Tax (10%)', '\$${tax.toStringAsFixed(2)}'],
+                ['Total', '\$${total.toStringAsFixed(2)}'],
+              ],
+            ),
+          ],
+        ),
+      );
 
-          // Customer Information
-          pw.Text('Customer Information',
-              style:
-                  pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
-          pw.SizedBox(height: 10),
-          pw.Table.fromTextArray(
-            data: [
-              ['Name', customerDetails['name']],
-              ['Mobile', customerDetails['mobile']],
-              ['Email', customerDetails['email']],
-              ['Address', customerDetails['address']],
-              ['Venue', customerDetails['venue']],
-              ['Order Date', customerDetails['orderDate']],
-            ],
-          ),
-          pw.SizedBox(height: 20),
+      final directory = Directory.systemTemp;
+      final file = File('${directory.path}/invoice.pdf');
+      await file.writeAsBytes(await pdf.save());
 
-          // Items Ordered
-          pw.Text('Items Ordered',
-              style:
-                  pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
-          pw.SizedBox(height: 10),
-          pw.Table.fromTextArray(
-            headers: ['Item', 'Price'],
-            data: cartItems.map((item) {
-              return [item['name'] ?? 'Unknown Item', '\$${item['price']}'];
-            }).toList(),
-          ),
-          pw.SizedBox(height: 20),
-
-          // Invoice Summary
-          pw.Text('Invoice Summary',
-              style:
-                  pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
-          pw.SizedBox(height: 10),
-          pw.Table.fromTextArray(
-            data: [
-              ['Subtotal', '\$${subtotal.toStringAsFixed(2)}'],
-              ['Tax (10%)', '\$${tax.toStringAsFixed(2)}'],
-              ['Total', '\$${total.toStringAsFixed(2)}'],
-            ],
-          ),
-        ],
-      ),
-    );
-
-    // Save the PDF in a temporary location
-    final directory = Directory.systemTemp;
-    final file = File('${directory.path}/invoice.pdf');
-    await file.writeAsBytes(await pdf.save());
-
-    // Open the generated PDF
-    OpenFile.open(file.path);
+      OpenFile.open(file.path);
+    } catch (e) {
+      debugPrint("Error generating PDF: $e");
+    }
   }
 
   @override
@@ -122,14 +142,11 @@ class GenerateInvoicePage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(
-          'Invoice Details',
-          style: TextStyle(
-            fontFamily: '-apple-system',
-            fontWeight: FontWeight.w600,
-            color: Colors.black,
-          ),
-        ),
+        title: Text('Invoice Details',
+            style: TextStyle(
+                fontFamily: '-apple-system',
+                fontWeight: FontWeight.w600,
+                color: Colors.black)),
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: IconThemeData(color: Colors.black),
@@ -137,44 +154,30 @@ class GenerateInvoicePage extends StatelessWidget {
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
-            // Increased horizontal padding to 24 and added screen edge protection
             padding:
                 const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Invoice Header
-                Center(),
-                const SizedBox(height: 24),
-
-                // Customer Information Section
                 _buildSectionHeader('Customer Information'),
                 const SizedBox(height: 12),
-                _buildDetailsCard(
-                  children: [
-                    _buildDetailRow('Name', customerDetails['name']),
-                    _buildDetailRow('Mobile', customerDetails['mobile']),
-                    _buildDetailRow('Email', customerDetails['email']),
-                    _buildDetailRow('Address', customerDetails['address']),
-                    _buildDetailRow('Venue', customerDetails['venue']),
-                    _buildDetailRow('Order Date', customerDetails['orderDate']),
-                  ],
-                ),
+                _buildDetailsCard([
+                  _buildDetailRow('Name', customerDetails['name']),
+                  _buildDetailRow('Mobile', customerDetails['mobile']),
+                  _buildDetailRow('Email', customerDetails['email']),
+                  _buildDetailRow('Address', customerDetails['address']),
+                  _buildDetailRow('Venue', customerDetails['venue']),
+                  _buildDetailRow('Order Date', customerDetails['orderDate']),
+                ]),
                 const SizedBox(height: 24),
-
-                // Items Ordered Section
                 _buildSectionHeader('Items Ordered'),
                 const SizedBox(height: 12),
                 _buildItemsCard(cartItems),
                 const SizedBox(height: 24),
-
-                // Invoice Summary Section
                 _buildSectionHeader('Invoice Summary'),
                 const SizedBox(height: 12),
                 _buildSummaryCard(subtotal, tax, total),
                 const SizedBox(height: 32),
-
-                // Download Button
                 Center(
                   child: ElevatedButton(
                     onPressed: () async {
@@ -185,23 +188,15 @@ class GenerateInvoicePage extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 32, vertical: 12),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 3,
+                          borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: Text(
-                      'Download Invoice',
-                      style: TextStyle(
-                        fontFamily: '-apple-system',
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
+                    child: Text('Download Invoice',
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white)),
                   ),
                 ),
-                // Added bottom padding to prevent content from being too close to the bottom
-                const SizedBox(height: 24),
               ],
             ),
           ),
@@ -210,201 +205,57 @@ class GenerateInvoicePage extends StatelessWidget {
     );
   }
 
-  // Helper Widgets
   Widget _buildSectionHeader(String title) {
-    return Text(
-      title,
-      style: TextStyle(
-        fontFamily: 'SF-Pro',
-        fontSize: 20,
-        fontWeight: FontWeight.w600,
-        color: Colors.black87,
-      ),
-    );
+    return Text(title,
+        style: TextStyle(
+            fontSize: 20, fontWeight: FontWeight.w600, color: Colors.black87));
   }
 
-  Widget _buildDetailsCard({required List<Widget> children}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade200,
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: children,
-      ),
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'SF-Pro',
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: Colors.black54,
-            ),
-          ),
-          Text(
-            value ?? 'N/A',
-            style: TextStyle(
-              fontFamily: 'SF-Pro',
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
-          ),
-        ],
-      ),
-    );
+  Widget _buildDetailsCard(List<Widget> children) {
+    return _buildContainer(children);
   }
 
   Widget _buildItemsCard(List<dynamic> items) {
-    // Debugging the cartItems list
-    print('Cart Items: $items'); // Check if cartItems is passed correctly
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade200,
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Item',
-                  style: TextStyle(
-                    fontFamily: 'SF-Pro',
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black54,
-                  ),
-                ),
-                Text(
-                  'Price',
-                  style: TextStyle(
-                    fontFamily: 'SF-Pro',
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black54,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1, color: Colors.grey),
-          // Iterate through the cartItems to display each item
-          ...items.map((item) {
-            print('Item: $item'); // Debugging individual item data
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    item['item'] ??
-                        'Unknown Item', // Ensure item['name'] is available
-                    style: TextStyle(
-                      fontFamily: 'SF-Pro',
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  Text(
-                    '\$${item['price']?.toStringAsFixed(2) ?? '0.00'}', // Ensure item['price'] is available
-                    style: TextStyle(
-                      fontFamily: 'SF-Pro',
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }).toList(),
-        ],
-      ),
-    );
+    return _buildContainer(items.map((item) {
+      return _buildDetailRow(item['item'] ?? 'Unknown Item',
+          '\$${(item['price'] ?? 0.0).toStringAsFixed(2)}');
+    }).toList());
   }
 
   Widget _buildSummaryCard(double subtotal, double tax, double total) {
+    return _buildContainer([
+      _buildDetailRow('Subtotal', '\$${subtotal.toStringAsFixed(2)}'),
+      _buildDetailRow('Tax (10%)', '\$${tax.toStringAsFixed(2)}'),
+      _buildDetailRow('Total', '\$${total.toStringAsFixed(2)}'),
+    ]);
+  }
+
+  Widget _buildContainer(List<Widget> children) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.shade200,
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
+              color: Colors.grey.shade200, blurRadius: 8, offset: Offset(0, 4)),
         ],
         border: Border.all(color: Colors.grey.shade200),
       ),
       padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          _buildSummaryRow('Subtotal', subtotal),
-          _buildSummaryRow('Tax (10%)', tax),
-          _buildSummaryRow('Total', total, isTotal: true),
-        ],
-      ),
+      child: Column(children: children),
     );
   }
 
-  Widget _buildSummaryRow(String label, double amount, {bool isTotal = false}) {
+  Widget _buildDetailRow(String label, String? value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'SF-Pro',
-              fontSize: 16,
-              fontWeight: isTotal ? FontWeight.w700 : FontWeight.w500,
-              color: isTotal ? Colors.black : Colors.black54,
-            ),
-          ),
-          Text(
-            '\$${amount.toStringAsFixed(2)}',
-            style: TextStyle(
-              fontFamily: 'SF-Pro',
-              fontSize: 16,
-              fontWeight: isTotal ? FontWeight.w700 : FontWeight.w600,
-              color: isTotal ? const Color(0xFF69F94F) : Colors.black87,
-            ),
-          ),
+          Text(label,
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400)),
+          Text(value ?? 'N/A',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
         ],
       ),
     );

@@ -101,7 +101,8 @@ class _SignupPageState extends State<SignupPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Title with modern, clean typography
+              // Add a spacer to push content towards center
+              const SizedBox(height: 100), // Adjust this height as needed
               Text(
                 'Create Account',
                 style: TextStyle(

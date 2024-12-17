@@ -1,7 +1,8 @@
 import 'package:costcater/pages/login_page.dart';
+import 'package:costcater/pages/homepage.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'pages/homepage.dart';
+import 'dart:async';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,7 +20,42 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: LoginPage(), // This will be the entry point
+      home: const SplashScreen(), // Start with the Splash Screen
+    );
+  }
+}
+
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Navigate to the LoginPage after 3 seconds
+    Timer(const Duration(seconds: 3), () {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => LoginPage()),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white, // Set the background color
+      body: Center(
+        child: Image.asset(
+          'assets/logos/costcaterlogo.jpg', // Path to your logo
+          width: 200, // Adjust size as needed
+          height: 200,
+          fit: BoxFit.contain,
+        ),
+      ),
     );
   }
 }
