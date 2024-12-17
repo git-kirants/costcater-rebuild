@@ -39,7 +39,8 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
   void calculateTotals() {
     subtotal =
         widget.cartItems.fold(0.0, (sum, item) => sum + (item['price'] ?? 0.0));
-    total = subtotal; // You can modify this to add tax or other fees
+    total = subtotal *
+        widget.noOfPlates; // You can modify this to add tax or other fees
     roundedPrice = (total + 5).toDouble(); // Example of rounding up
   }
 
@@ -47,6 +48,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
   void initState() {
     super.initState();
     plates = widget.noOfPlates.toDouble(); // Set the number of plates
+    print(widget.cartItems); // Debugging cartItems
     calculateTotals(); // Calculate totals when the page is initialized
   }
 
@@ -55,104 +57,186 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Customer Details'),
+        backgroundColor: const Color.fromARGB(255, 255, 255, 255),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              // Input fields for customer details
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(labelText: 'Name'),
+      body: SafeArea(
+        // To prevent the content from being hidden behind device notches or gestures
+        child: Column(
+          children: [
+            // Main content section (now scrollable)
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    // Customer Details Section
+                    _buildTextField(nameController, 'Name'),
+                    _buildTextField(mobileController, 'Mobile'),
+                    _buildTextField(emailController, 'Email'),
+                    _buildTextField(addressController, 'Address'),
+                    _buildTextField(venueController, 'Venue'),
+                    _buildTextField(employeeNameController, 'Employee Name'),
+                    _buildTextField(employeeEmailController, 'Employee Email'),
+                    _buildTextField(phoneNumberController, 'Phone Number'),
+                    _buildTextField(orderDateController, 'Order Date'),
+                    _buildTextField(fssainoController, 'FSSAI No'),
+                    _buildTextField(taxController, 'Tax'),
+                  ],
+                ),
               ),
-              TextField(
-                controller: mobileController,
-                decoration: const InputDecoration(labelText: 'Mobile'),
-              ),
-              TextField(
-                controller: emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
-              ),
-              TextField(
-                controller: addressController,
-                decoration: const InputDecoration(labelText: 'Address'),
-              ),
-              TextField(
-                controller: venueController,
-                decoration: const InputDecoration(labelText: 'Venue'),
-              ),
-              TextField(
-                controller: employeeNameController,
-                decoration: const InputDecoration(labelText: 'Employee Name'),
-              ),
-              TextField(
-                controller: employeeEmailController,
-                decoration: const InputDecoration(labelText: 'Employee Email'),
-              ),
-              TextField(
-                controller: phoneNumberController,
-                decoration: const InputDecoration(labelText: 'Phone Number'),
-              ),
-              TextField(
-                controller: orderDateController,
-                decoration: const InputDecoration(labelText: 'Order Date'),
-              ),
-              TextField(
-                controller: fssainoController,
-                decoration: const InputDecoration(labelText: 'FSSAI No'),
-              ),
-              TextField(
-                controller: taxController,
-                decoration: const InputDecoration(labelText: 'Tax'),
-              ),
-              // Display number of plates
-              Text(
-                'Number of Plates: ${plates.toStringAsFixed(0)}',
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              // Cart summary
-              ListTile(
-                title: Text('Subtotal: \$${subtotal.toStringAsFixed(2)}'),
-                subtitle: Text('Total: \$${total.toStringAsFixed(2)}'),
-              ),
-              // Button to navigate to generate invoice page
-              ElevatedButton(
-                onPressed: () {
-                  // Implement logic to navigate to generate invoice page
-                  // Pass necessary data (like customer details and cart items)
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => GenerateInvoicePage(
-                        customerDetails: {
-                          'name': nameController.text,
-                          'mobile': mobileController.text,
-                          'email': emailController.text,
-                          'address': addressController.text,
-                          'venue': venueController.text,
-                          'employeeName': employeeNameController.text,
-                          'employeeEmail': employeeEmailController.text,
-                          'plates': plates,
-                          'total': total,
-                          'subtotal': subtotal,
-                          'date': date,
-                          'phoneNumber': phoneNumberController.text,
-                          'roundedPrice': roundedPrice,
-                          'orderDate': orderDateController.text,
-                          'fssaino': fssainoController.text,
-                          'tax': taxController.text,
-                        },
-                        cartItems: widget.cartItems,
+            ),
+
+            // Floating summary section at the bottom
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Card(
+                color: Colors.white,
+                elevation: 5,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Number of Plates
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Number of Plates:',
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            '${plates.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                        ],
                       ),
-                    ),
-                  );
-                },
-                child: const Text('Generate Invoice'),
+                      const SizedBox(height: 16),
+
+                      // Cart Summary Section
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Subtotal:',
+                              style: const TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold)),
+                          Text(
+                            '\$${subtotal.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Total:',
+                              style: const TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold)),
+                          Text(
+                            '\$${total.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Generate Invoice Button
+                      ElevatedButton(
+                        onPressed: () {
+                          // Ensure totals are calculated before navigating
+                          calculateTotals();
+
+                          // Pass the calculated subtotal and total to the GenerateInvoicePage
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => GenerateInvoicePage(
+                                customerDetails: {
+                                  'name': nameController.text,
+                                  'mobile': mobileController.text,
+                                  'email': emailController.text,
+                                  'address': addressController.text,
+                                  'venue': venueController.text,
+                                  'employeeName': employeeNameController.text,
+                                  'employeeEmail': employeeEmailController.text,
+                                  'plates': plates,
+                                  'total': total,
+                                  'subtotal': subtotal,
+                                  'date': date,
+                                  'phoneNumber': phoneNumberController.text,
+                                  'roundedPrice': roundedPrice,
+                                  'orderDate': orderDateController.text,
+                                  'fssaino': fssainoController.text,
+                                  'tax': taxController.text,
+                                },
+                                cartItems: widget.cartItems,
+                              ),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: Size(double.infinity, 50),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          backgroundColor: const Color(0xFF52ed28),
+                        ),
+                        child: const Text(
+                          'Generate Invoice',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Helper method to build text fields with consistent styling
+  Widget _buildTextField(TextEditingController controller, String label) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12.0),
+      child: TextField(
+        controller: controller,
+        style: const TextStyle(
+          fontFamily: 'SF Pro',
+          fontWeight: FontWeight.normal,
+          color: Colors.black,
+        ),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(
+            fontFamily: 'SF Pro',
+            color: Colors.black54,
           ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Colors.grey),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(
+                color: Color.fromARGB(255, 64, 243, 70)), // Active border color
+          ),
+          contentPadding:
+              const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         ),
       ),
     );

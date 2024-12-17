@@ -8,9 +8,15 @@ class GenerateInvoicePage extends StatelessWidget {
   final Map<String, dynamic> customerDetails;
   final List<dynamic> cartItems;
 
-  GenerateInvoicePage({required this.customerDetails, required this.cartItems});
+  GenerateInvoicePage({
+    required this.customerDetails,
+    required this.cartItems,
+  }) {
+    // Debugging cartItms
+    debugPrint("Received cartItems: $cartItems");
+  }
 
-  // Function to calculate subtotal, tax, and total from cart items
+  // Existing calculation methods remain the same
   double calculateSubtotal() {
     double subtotal = 0.0;
     for (var item in cartItems) {
@@ -22,22 +28,21 @@ class GenerateInvoicePage extends StatelessWidget {
   }
 
   double calculateTax(double subtotal) {
-    // Example: 10% tax
-    return subtotal * 0.10;
+    return subtotal * 0.10; // 10% tax
   }
 
-  double calculateTotal(double subtotal, double tax) {
-    return subtotal + tax;
+  double calculateTotal(double subtotal, double tax, double plates) {
+    return (subtotal + tax) * plates;
   }
 
-  // Function to generate the PDF
-  Future<void> generatePDF(BuildContext context) async {
+  // PDF generation method remains the same
+  Future<void> generatePDF(BuildContext context, double plates) async {
     final pdf = pw.Document();
 
     // Calculate totals
     double subtotal = calculateSubtotal();
     double tax = calculateTax(subtotal);
-    double total = calculateTotal(subtotal, tax);
+    double total = calculateTotal(subtotal, tax, plates);
 
     // Create PDF content
     pdf.addPage(
@@ -99,7 +104,7 @@ class GenerateInvoicePage extends StatelessWidget {
     );
 
     // Save the PDF in a temporary location
-    final directory = Directory.systemTemp; // Use system temporary directory
+    final directory = Directory.systemTemp;
     final file = File('${directory.path}/invoice.pdf');
     await file.writeAsBytes(await pdf.save());
 
@@ -109,146 +114,298 @@ class GenerateInvoicePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Calculate totals
+    double plates = customerDetails['plates'] ?? 1;
     double subtotal = calculateSubtotal();
     double tax = calculateTax(subtotal);
-    double total = calculateTotal(subtotal, tax);
+    double total = calculateTotal(subtotal, tax, plates);
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Generate Invoice'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Invoice Title
-            Center(
-              child: Text(
-                'Invoice',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blueAccent,
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Customer Information
-            Text('Customer Information',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Table(
-              columnWidths: {0: FixedColumnWidth(150.0)},
-              children: [
-                TableRow(children: [
-                  Text('Name:', style: TextStyle(fontSize: 16)),
-                  Text(customerDetails['name'], style: TextStyle(fontSize: 16)),
-                ]),
-                TableRow(children: [
-                  Text('Mobile:', style: TextStyle(fontSize: 16)),
-                  Text(customerDetails['mobile'],
-                      style: TextStyle(fontSize: 16)),
-                ]),
-                TableRow(children: [
-                  Text('Email:', style: TextStyle(fontSize: 16)),
-                  Text(customerDetails['email'],
-                      style: TextStyle(fontSize: 16)),
-                ]),
-                TableRow(children: [
-                  Text('Address:', style: TextStyle(fontSize: 16)),
-                  Text(customerDetails['address'],
-                      style: TextStyle(fontSize: 16)),
-                ]),
-                TableRow(children: [
-                  Text('Venue:', style: TextStyle(fontSize: 16)),
-                  Text(customerDetails['venue'],
-                      style: TextStyle(fontSize: 16)),
-                ]),
-                TableRow(children: [
-                  Text('Order Date:', style: TextStyle(fontSize: 16)),
-                  Text(customerDetails['orderDate'],
-                      style: TextStyle(fontSize: 16)),
-                ]),
-              ],
-            ),
-            const SizedBox(height: 20),
-
-            // Invoice Items
-            Text('Items Ordered',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Table(
-              columnWidths: {
-                0: FixedColumnWidth(200.0),
-                1: FixedColumnWidth(100.0),
-              },
-              children: [
-                TableRow(children: [
-                  Text('Item',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  Text('Price',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                ]),
-                for (var item in cartItems)
-                  TableRow(children: [
-                    Text(item['name'] ?? 'Unknown Item',
-                        style: TextStyle(fontSize: 16)),
-                    Text('\$${item['price']?.toStringAsFixed(2) ?? '0.00'}',
-                        style: TextStyle(fontSize: 16)),
-                  ]),
-              ],
-            ),
-            const SizedBox(height: 20),
-
-            // Invoice Summary
-            Table(
-              columnWidths: {
-                0: FixedColumnWidth(200.0),
-                1: FixedColumnWidth(100.0)
-              },
-              children: [
-                TableRow(children: [
-                  Text('Subtotal:',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  Text('\$${subtotal.toStringAsFixed(2)}',
-                      style: TextStyle(fontSize: 16)),
-                ]),
-                TableRow(children: [
-                  Text('Tax (10%):',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  Text('\$${tax.toStringAsFixed(2)}',
-                      style: TextStyle(fontSize: 16)),
-                ]),
-                TableRow(children: [
-                  Text('Total:',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  Text('\$${total.toStringAsFixed(2)}',
-                      style: TextStyle(fontSize: 16)),
-                ]),
-              ],
-            ),
-            const SizedBox(height: 20),
-
-            // Download Button
-            Center(
-              child: ElevatedButton(
-                onPressed: () async {
-                  await generatePDF(context);
-                },
-                child: const Text('Download Invoice',
-                    style: TextStyle(fontSize: 16)),
-              ),
-            ),
-          ],
+        title: Text(
+          'Invoice Details',
+          style: TextStyle(
+            fontFamily: '-apple-system',
+            fontWeight: FontWeight.w600,
+            color: Colors.black,
+          ),
         ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: IconThemeData(color: Colors.black),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            // Increased horizontal padding to 24 and added screen edge protection
+            padding:
+                const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Invoice Header
+                Center(),
+                const SizedBox(height: 24),
+
+                // Customer Information Section
+                _buildSectionHeader('Customer Information'),
+                const SizedBox(height: 12),
+                _buildDetailsCard(
+                  children: [
+                    _buildDetailRow('Name', customerDetails['name']),
+                    _buildDetailRow('Mobile', customerDetails['mobile']),
+                    _buildDetailRow('Email', customerDetails['email']),
+                    _buildDetailRow('Address', customerDetails['address']),
+                    _buildDetailRow('Venue', customerDetails['venue']),
+                    _buildDetailRow('Order Date', customerDetails['orderDate']),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // Items Ordered Section
+                _buildSectionHeader('Items Ordered'),
+                const SizedBox(height: 12),
+                _buildItemsCard(cartItems),
+                const SizedBox(height: 24),
+
+                // Invoice Summary Section
+                _buildSectionHeader('Invoice Summary'),
+                const SizedBox(height: 12),
+                _buildSummaryCard(subtotal, tax, total),
+                const SizedBox(height: 32),
+
+                // Download Button
+                Center(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      await generatePDF(context, plates);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF69F94F),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 32, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 3,
+                    ),
+                    child: Text(
+                      'Download Invoice',
+                      style: TextStyle(
+                        fontFamily: '-apple-system',
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+                // Added bottom padding to prevent content from being too close to the bottom
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Helper Widgets
+  Widget _buildSectionHeader(String title) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontFamily: 'SF-Pro',
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+        color: Colors.black87,
+      ),
+    );
+  }
+
+  Widget _buildDetailsCard({required List<Widget> children}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade200,
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontFamily: 'SF-Pro',
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: Colors.black54,
+            ),
+          ),
+          Text(
+            value ?? 'N/A',
+            style: TextStyle(
+              fontFamily: 'SF-Pro',
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildItemsCard(List<dynamic> items) {
+    // Debugging the cartItems list
+    print('Cart Items: $items'); // Check if cartItems is passed correctly
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade200,
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Item',
+                  style: TextStyle(
+                    fontFamily: 'SF-Pro',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black54,
+                  ),
+                ),
+                Text(
+                  'Price',
+                  style: TextStyle(
+                    fontFamily: 'SF-Pro',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black54,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: Colors.grey),
+          // Iterate through the cartItems to display each item
+          ...items.map((item) {
+            print('Item: $item'); // Debugging individual item data
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    item['item'] ??
+                        'Unknown Item', // Ensure item['name'] is available
+                    style: TextStyle(
+                      fontFamily: 'SF-Pro',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  Text(
+                    '\$${item['price']?.toStringAsFixed(2) ?? '0.00'}', // Ensure item['price'] is available
+                    style: TextStyle(
+                      fontFamily: 'SF-Pro',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryCard(double subtotal, double tax, double total) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade200,
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          _buildSummaryRow('Subtotal', subtotal),
+          _buildSummaryRow('Tax (10%)', tax),
+          _buildSummaryRow('Total', total, isTotal: true),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryRow(String label, double amount, {bool isTotal = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontFamily: 'SF-Pro',
+              fontSize: 16,
+              fontWeight: isTotal ? FontWeight.w700 : FontWeight.w500,
+              color: isTotal ? Colors.black : Colors.black54,
+            ),
+          ),
+          Text(
+            '\$${amount.toStringAsFixed(2)}',
+            style: TextStyle(
+              fontFamily: 'SF-Pro',
+              fontSize: 16,
+              fontWeight: isTotal ? FontWeight.w700 : FontWeight.w600,
+              color: isTotal ? const Color(0xFF69F94F) : Colors.black87,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,121 +1,90 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'cart_page.dart';
-import 'create_tier_page.dart'; // Import your CreateTierPage
+import 'create_tier_page.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final String email; // Accept email as a parameter
+
+  const HomePage({super.key, required this.email});
 
   @override
   _HomePageState createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  late String userId; // Current user's ID
-  late CollectionReference cartRef; // Firestore cart reference
+  late String userId;
+  late CollectionReference menuTiersRef;
 
   @override
   void initState() {
     super.initState();
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      userId = user.uid;
-      cartRef = FirebaseFirestore.instance.collection('carts');
+    userId = widget.email; // Use the passed email as the userId
+    menuTiersRef = FirebaseFirestore.instance.collection('menuTiers');
+  }
+
+  // Add the entire tier to the cart
+  void _addTierToCart(Map<String, dynamic> tier) {
+    print("Adding entire tier ${tier['tierName']} to cart.");
+  }
+
+// Add an individual item to the cart
+  void _addItemToCart(String userId, Map<String, dynamic> newItem) async {
+    try {
+      // Reference to the user's document in 'cartItems'
+      final userCartRef = FirebaseFirestore.instance
+          .collection('cartItems')
+          .doc(userId); // e.g., userId = 'kiran221031@gmail.com'
+
+      // Update Firestore document: Add to the 'items' array
+      await userCartRef.set({
+        'items': FieldValue.arrayUnion([
+          {
+            'item': newItem['name'], // Item name
+            'price': newItem['price'], // Item price
+          }
+        ]),
+      }, SetOptions(merge: true)); // Merge with existing document
+
+      // Success feedback
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("${newItem['name']} added to cart!")),
+      );
+    } catch (e) {
+      print("Error adding item to cart: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to add ${newItem['name']} to cart.")),
+      );
     }
   }
 
-  Future<void> addToCart(String name, double price) async {
-    final docRef = cartRef.doc(userId);
+  // Remove a tier from Firestore
+  Future<void> _removeTierFromDatabase(
+      Map<String, dynamic> tierToRemove) async {
+    final docRef = menuTiersRef.doc(userId);
 
     await FirebaseFirestore.instance.runTransaction((transaction) async {
       final snapshot = await transaction.get(docRef);
 
-      if (!snapshot.exists) {
-        transaction.set(docRef, {
-          'cartItems': [
-            {'name': name, 'price': price}
-          ],
-        });
-      } else {
-        List<dynamic> cartItems = snapshot['cartItems'];
-        if (!cartItems.any((element) => element['name'] == name)) {
-          cartItems.add({'name': name, 'price': price});
-          transaction.update(docRef, {'cartItems': cartItems});
-        }
+      if (snapshot.exists) {
+        List<dynamic> existingTiers = snapshot['tiers'] ?? [];
+        existingTiers.removeWhere(
+            (tier) => tier['tierName'] == tierToRemove['tierName']);
+        transaction.update(docRef, {'tiers': existingTiers});
       }
     });
   }
 
-  Future<void> addTierToCart(List<Map<String, dynamic>> items) async {
-    final docRef = cartRef.doc(userId);
-
-    await FirebaseFirestore.instance.runTransaction((transaction) async {
-      final snapshot = await transaction.get(docRef);
-
-      if (!snapshot.exists) {
-        transaction.set(docRef, {
-          'cartItems': items,
-        });
-      } else {
-        List<dynamic> cartItems = snapshot['cartItems'];
-        for (var item in items) {
-          if (!cartItems.any((element) => element['name'] == item['name'])) {
-            cartItems.add(item);
-          }
-        }
-        transaction.update(docRef, {'cartItems': cartItems});
-      }
-    });
-  }
-
-  List<Map<String, dynamic>> menuTiers = [
-    {
-      'tier': 'Gold',
-      'price': 100.0,
-      'items': [
-        {'name': 'Steak', 'price': 40.0},
-        {'name': 'Lobster', 'price': 30.0},
-        {'name': 'Caviar', 'price': 30.0}
-      ]
-    },
-    {
-      'tier': 'Silver',
-      'price': 50.0,
-      'items': [
-        {'name': 'Chicken', 'price': 15.0},
-        {'name': 'Fish', 'price': 15.0},
-        {'name': 'Salad', 'price': 20.0}
-      ]
-    },
-    {
-      'tier': 'Bronze',
-      'price': 25.0,
-      'items': [
-        {'name': 'Pizza', 'price': 10.0},
-        {'name': 'Burger', 'price': 8.0},
-        {'name': 'Fries', 'price': 7.0}
-      ]
-    },
-  ];
-
+  // Navigate to CreateTierPage
   void _navigateToCreateTier() async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const CreateTierPage(),
+        builder: (context) => CreateTierPage(email: widget.email),
       ),
     );
 
     if (result != null && result is Map<String, dynamic>) {
-      setState(() {
-        menuTiers.add({
-          'tier': result['tier'],
-          'price': result['items']
-              .fold(0.0, (sum, item) => sum + (item['price'] as double)),
-          'items': result['items'],
-        });
-      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('${result['tier']} tier created!')),
       );
@@ -126,91 +95,157 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Menu'),
-        backgroundColor: Colors.blueAccent,
+        title: const Text(
+          'Menu Tiers',
+          style: TextStyle(
+            color: Colors.black87,
+            fontFamily: 'SFPro',
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 1.0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.shopping_cart),
+            icon: const Icon(Icons.shopping_cart, color: Color(0xFF52ed28)),
             onPressed: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const CartPage(),
+                  builder: (context) => CartPage(userId: userId),
                 ),
               );
             },
           ),
         ],
       ),
-      body: ListView.builder(
-        itemCount: menuTiers.length,
-        itemBuilder: (context, index) {
-          var tier = menuTiers[index];
-          return Card(
-            margin: const EdgeInsets.all(8.0),
-            child: ExpansionTile(
-              title: Text(
-                tier['tier'],
-                style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      await addTierToCart(
-                          List<Map<String, dynamic>>.from(tier['items']));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                            content:
-                                Text('${tier['tier']} tier added to cart!')),
-                      );
-                    },
-                    child: Text(
-                        'Add Entire ${tier['tier']} Tier (\$${tier['price']}) to Cart'),
-                  ),
+      body: StreamBuilder<DocumentSnapshot>(
+        stream:
+            menuTiersRef.doc(userId).snapshots(), // Real-time Firestore stream
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (!snapshot.hasData || !snapshot.data!.exists) {
+            return const Center(child: Text("No menu tiers available."));
+          }
+
+          // Extract and parse tier data
+          final data = snapshot.data!.data() as Map<String, dynamic>;
+          final List<dynamic> tiers = data['tiers'] ?? [];
+
+          // Convert Firestore tier data into a list of usable maps
+          List<Map<String, dynamic>> parsedTiers = tiers.map((tier) {
+            final items = tier['tierItems'] ?? [];
+            return {
+              'tierName': tier['tierName'] ?? 'Unnamed Tier',
+              'tierPrice': tier['tierPrice'] ?? 0,
+              'items': items.map((item) {
+                return {
+                  'name': item['itemName'] ?? 'Unnamed Item',
+                  'price': item['itemPrice'] is String
+                      ? double.tryParse(item['itemPrice']) ?? 0.0
+                      : (item['itemPrice'] ?? 0).toDouble(),
+                };
+              }).toList(),
+            };
+          }).toList();
+
+          return ListView.builder(
+            itemCount: parsedTiers.length,
+            itemBuilder: (context, index) {
+              var tier = parsedTiers[index];
+              return Card(
+                margin: const EdgeInsets.all(8.0),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.0),
                 ),
-                ...tier['items'].map<Widget>((item) {
-                  return ListTile(
-                    title: Text(
-                      item['name'],
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
+                elevation: 3,
+                child: Column(
+                  children: [
+                    ExpansionTile(
+                      backgroundColor: Colors.white,
+                      iconColor: const Color(0xFF52ed28),
+                      title: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Tier Name
+                          Text(
+                            '${tier['tierName']}',
+                            style: const TextStyle(
+                              fontFamily: 'SFPro',
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          // Buttons to the right
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.add),
+                                color: Color(0xFF52ed28),
+                                onPressed: () => _addTierToCart(tier),
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.remove_circle_outline,
+                                  color: Colors.red,
+                                ),
+                                onPressed: () => _removeTierFromDatabase(tier),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                       children: [
-                        Text(
-                          '\$${item['price']}',
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.add_shopping_cart,
-                              color: Colors.green),
-                          onPressed: () async {
-                            await addToCart(item['name'], item['price']);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                  content:
-                                      Text('${item['name']} added to cart!')),
-                            );
-                          },
-                        ),
+                        ...tier['items'].map<Widget>((item) {
+                          return ListTile(
+                            title: Text(
+                              item['name'] ?? 'Unnamed Item',
+                              style: const TextStyle(
+                                fontFamily: 'SFPro',
+                                fontSize: 16,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  '\$${item['price']}',
+                                  style: const TextStyle(
+                                    fontFamily: 'SFPro',
+                                    fontSize: 16,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.add_shopping_cart),
+                                  color: Color(0xFF52ed28),
+                                  onPressed: () => _addItemToCart(userId, item),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
                       ],
                     ),
-                  );
-                }).toList(),
-              ],
-            ),
+                  ],
+                ),
+              );
+            },
           );
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _navigateToCreateTier, // Navigate to CreateTierPage
-        child: const Icon(Icons.add), // "+" icon for Add Tier
-        backgroundColor: Colors.blueAccent,
+        onPressed: _navigateToCreateTier,
+        child: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: const Color(0xFF52ed28),
         tooltip: 'Add New Tier',
       ),
+      backgroundColor: Colors.white,
     );
   }
 }

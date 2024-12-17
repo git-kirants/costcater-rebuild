@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'signup_page.dart';
-import 'homepage.dart'; // Import the HomePage
+import 'homepage.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -15,7 +15,6 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
-  // Sign-in method
   Future<void> login() async {
     if (emailController.text.isEmpty || passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -25,28 +24,24 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     try {
-      // Sign in with Firebase Authentication
       await _auth.signInWithEmailAndPassword(
         email: emailController.text,
         password: passwordController.text,
       );
 
-      // Show a success message
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Login Successful')),
       );
 
-      // Navigate to the HomePage
       if (mounted) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => HomePage() // Removed 'const' here
+            builder: (context) => HomePage(email: emailController.text),
           ),
         );
       }
     } on FirebaseAuthException catch (e) {
-      // Show an error message based on Firebase authentication error
       String errorMessage = 'Error: ${e.message}';
       if (e.code == 'user-not-found') {
         errorMessage = 'No user found for that email.';
@@ -60,7 +55,6 @@ class _LoginPageState extends State<LoginPage> {
         );
       }
     } catch (e) {
-      // General error handling
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Unexpected error: $e')),
@@ -72,47 +66,144 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Login')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Email input field with validation
-            TextField(
-              controller: emailController,
-              decoration: const InputDecoration(labelText: 'Email'),
-              keyboardType: TextInputType.emailAddress, // Helps in proper input
-            ),
-            const SizedBox(height: 12),
-            // Password input field with validation
-            TextField(
-              controller: passwordController,
-              decoration: const InputDecoration(labelText: 'Password'),
-              obscureText: true, // Hide password text
-            ),
-            const SizedBox(height: 24),
-            // Login button with error handling
-            ElevatedButton(
-              onPressed: login,
-              child: const Text('Login'),
-            ),
-            // Navigate to SignupPage if the user doesn't have an account
-            TextButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) =>
-                          const SignupPage()), // Removed 'const' here
-                );
-              },
-              child: const Text("Don't have an account? Sign up"),
-            ),
-          ],
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Welcome Back',
+                style: TextStyle(
+                  fontFamily: 'SFProDisplay',
+                  fontSize: 32,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Sign in to continue',
+                style: TextStyle(
+                  fontFamily: 'SFProDisplay',
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 40),
+              _buildTextField(
+                controller: emailController,
+                labelText: 'Email',
+                hintText: 'Enter your email',
+                icon: Icons.email_outlined,
+              ),
+              const SizedBox(height: 16),
+              _buildTextField(
+                controller: passwordController,
+                labelText: 'Password',
+                hintText: 'Enter your password',
+                icon: Icons.lock_outline,
+                obscureText: true,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: login,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF52ED28),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: Text(
+                  'Login',
+                  style: TextStyle(
+                    fontFamily: 'SFProDisplay',
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const SignupPage()),
+                  );
+                },
+                child: RichText(
+                  text: TextSpan(
+                    style: TextStyle(
+                      fontFamily: 'SFProDisplay',
+                      fontSize: 16,
+                      color: Colors.grey[700],
+                    ),
+                    children: [
+                      const TextSpan(text: "Don't have an account? "),
+                      TextSpan(
+                        text: 'Sign up',
+                        style: TextStyle(
+                          color: const Color(0xFF52ED28),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String labelText,
+    required String hintText,
+    required IconData icon,
+    bool obscureText = false,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: obscureText,
+      style: TextStyle(
+        fontFamily: 'SFProDisplay',
+        color: Colors.black87,
+        fontSize: 16,
+      ),
+      decoration: InputDecoration(
+        prefixIcon: Icon(icon, color: Colors.grey[600]),
+        labelText: labelText,
+        hintText: hintText,
+        labelStyle: TextStyle(
+          fontFamily: 'SFProDisplay',
+          color: Colors.grey[600],
+        ),
+        hintStyle: TextStyle(
+          fontFamily: 'SFProDisplay',
+          color: Colors.grey[400],
+        ),
+        filled: true,
+        fillColor: Colors.grey[100],
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: const Color(0xFF52ED28), width: 2),
+        ),
+      ),
+      keyboardType: obscureText
+          ? TextInputType.visiblePassword
+          : TextInputType.emailAddress,
     );
   }
 }
