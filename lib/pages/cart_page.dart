@@ -253,40 +253,44 @@ class _CartPageState extends State<CartPage> {
                             ),
                             const SizedBox(height: 12),
                             // Improved Button Design
-                            ElevatedButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => CustomerDetailsPage(
-                                      cartItems: cartItems,
-                                      totalAmount: totalAmount,
-                                      noOfPlates: int.tryParse(
-                                              noOfPlatesController.text) ??
-                                          0,
+                            SizedBox(
+                              width: double
+                                  .infinity, // Makes the button take the full available width
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => CustomerDetailsPage(
+                                        cartItems: cartItems,
+                                        totalAmount: totalAmount,
+                                        noOfPlates: int.tryParse(
+                                                noOfPlatesController.text) ??
+                                            0,
+                                      ),
                                     ),
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF52ed28),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
                                   ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF52ed28),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical:
+                                        18, // Keeps the vertical padding consistent
+                                  ),
+                                  elevation: 5,
+                                  shadowColor: Colors.green.withOpacity(0.5),
                                 ),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 18,
-                                  horizontal: 136,
-                                ),
-                                elevation: 5,
-                                shadowColor: Colors.green.withOpacity(0.5),
-                              ),
-                              child: const Text(
-                                'Proceed',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontFamily: 'SF Pro',
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                                child: const Text(
+                                  'Proceed',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontFamily: 'SF Pro',
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
                             ),

@@ -1,9 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'dart:io';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:open_file/open_file.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:printing/printing.dart';
 
 class GenerateInvoicePage extends StatelessWidget {
   final Map<String, dynamic> customerDetails;
@@ -35,20 +37,22 @@ class GenerateInvoicePage extends StatelessWidget {
     return (subtotal + tax) * plates;
   }
 
-  // PDF generation
-  Future<void> generatePDF(BuildContext context, double plates) async {
+  Future<void> generateInvoice(BuildContext context, double plates) async {
     try {
       final pdf = pw.Document();
 
-      final sfProRegular = pw.Font.ttf(
-          await rootBundle.load("assets/fonts/SF-Pro-Display-Regular.otf"));
-      final sfProBold = pw.Font.ttf(
-          await rootBundle.load("assets/fonts/SF-Pro-Display-Bold.otf"));
+      // Load custom fonts
+      final fontRegular = pw.Font.ttf(
+          await rootBundle.load('assets/fonts/SF-Pro-Display-Regular.otf'));
+      final fontBold = pw.Font.ttf(
+          await rootBundle.load('assets/fonts/SF-Pro-Display-Bold.otf'));
 
+      // Calculate financial details
       double subtotal = calculateSubtotal();
       double tax = calculateTax(subtotal);
       double total = calculateTotal(subtotal, tax, plates);
 
+      // Create PDF
       pdf.addPage(
         pw.MultiPage(
           pageFormat: PdfPageFormat.a4,
@@ -57,12 +61,12 @@ class GenerateInvoicePage extends StatelessWidget {
             pw.Center(
               child: pw.Text(
                 'Invoice',
-                style: pw.TextStyle(fontSize: 28, font: sfProBold),
+                style: pw.TextStyle(fontSize: 28, font: fontBold),
               ),
             ),
             pw.SizedBox(height: 20),
             pw.Text('Customer Information',
-                style: pw.TextStyle(fontSize: 18, font: sfProBold)),
+                style: pw.TextStyle(fontSize: 18, font: fontBold)),
             pw.SizedBox(height: 10),
             pw.TableHelper.fromTextArray(
               columnWidths: {
@@ -78,12 +82,12 @@ class GenerateInvoicePage extends StatelessWidget {
                 ['Venue', customerDetails['venue'] ?? 'N/A'],
                 ['Order Date', customerDetails['orderDate'] ?? 'N/A'],
               ],
-              headerStyle: pw.TextStyle(font: sfProBold),
-              cellStyle: pw.TextStyle(font: sfProRegular),
+              headerStyle: pw.TextStyle(font: fontBold),
+              cellStyle: pw.TextStyle(font: fontRegular),
             ),
             pw.SizedBox(height: 20),
             pw.Text('Items Ordered',
-                style: pw.TextStyle(fontSize: 18, font: sfProBold)),
+                style: pw.TextStyle(fontSize: 18, font: fontBold)),
             pw.SizedBox(height: 10),
             pw.TableHelper.fromTextArray(
               headers: ['Item', 'Price'],
@@ -91,26 +95,26 @@ class GenerateInvoicePage extends StatelessWidget {
                 0: pw.FlexColumnWidth(2),
                 1: pw.FlexColumnWidth(1),
               },
-              headerStyle: pw.TextStyle(font: sfProBold),
-              cellStyle: pw.TextStyle(font: sfProRegular),
-              data: cartItems.map((item) {
-                return [
-                  item['item'] ?? 'Unknown Item',
-                  '\$${(item['price'] ?? 0.0).toStringAsFixed(2)}'
-                ];
-              }).toList(),
+              headerStyle: pw.TextStyle(font: fontBold),
+              cellStyle: pw.TextStyle(font: fontRegular),
+              data: cartItems
+                  .map((item) => [
+                        item['item'] ?? 'Unknown Item',
+                        '\$${(item['price'] ?? 0.0).toStringAsFixed(2)}'
+                      ])
+                  .toList(),
             ),
             pw.SizedBox(height: 20),
             pw.Text('Invoice Summary',
-                style: pw.TextStyle(fontSize: 18, font: sfProBold)),
+                style: pw.TextStyle(fontSize: 18, font: fontBold)),
             pw.SizedBox(height: 10),
             pw.TableHelper.fromTextArray(
               columnWidths: {
                 0: pw.FlexColumnWidth(1),
                 1: pw.FlexColumnWidth(1),
               },
-              headerStyle: pw.TextStyle(font: sfProBold),
-              cellStyle: pw.TextStyle(font: sfProRegular),
+              headerStyle: pw.TextStyle(font: fontBold),
+              cellStyle: pw.TextStyle(font: fontRegular),
               cellAlignment: pw.Alignment.centerRight,
               data: [
                 ['Subtotal', '\$${subtotal.toStringAsFixed(2)}'],
@@ -122,13 +126,14 @@ class GenerateInvoicePage extends StatelessWidget {
         ),
       );
 
-      final directory = Directory.systemTemp;
-      final file = File('${directory.path}/invoice.pdf');
-      await file.writeAsBytes(await pdf.save());
-
-      OpenFile.open(file.path);
+      // Open PDF directly without saving
+      await Printing.layoutPdf(
+          onLayout: (PdfPageFormat format) async => pdf.save());
     } catch (e) {
       debugPrint("Error generating PDF: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to generate invoice: $e')),
+      );
     }
   }
 
@@ -180,9 +185,7 @@ class GenerateInvoicePage extends StatelessWidget {
                 const SizedBox(height: 32),
                 Center(
                   child: ElevatedButton(
-                    onPressed: () async {
-                      await generatePDF(context, plates);
-                    },
+                    onPressed: () => generateInvoice(context, plates),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF69F94F),
                       padding: const EdgeInsets.symmetric(
@@ -253,9 +256,12 @@ class GenerateInvoicePage extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label,
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400)),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
           Text(value ?? 'N/A',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.grey.shade700)),
         ],
       ),
     );
