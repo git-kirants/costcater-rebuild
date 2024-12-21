@@ -37,6 +37,49 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
   double roundedPrice = 0;
   String date = '';
 
+// Terms and Conditions template
+  final String termsAndConditions = '''
+1. Booking and Confirmation
+   • All bookings must be confirmed with a 50% advance payment
+   • Final guest count must be confirmed 72 hours prior to the event
+   • Minimum guest count requirements may apply
+
+2. Payment Terms
+   • 50% deposit required to secure booking
+   • Balance payment due 24 hours before the event
+   • Accepted payment methods: Cash, Bank Transfer, Credit Card
+   • Additional charges may apply for extended service hours
+
+3. Food and Service
+   • Menu selections must be finalized 7 days prior to the event
+   • Food quantities are prepared based on the final guest count
+   • Special dietary requirements must be communicated in advance
+   • Food safety and quality standards are maintained as per FSSAI guidelines
+
+4. Cancellation Policy
+   • Cancellations made 7 days or more before event: 80% refund
+   • Cancellations made 3-6 days before event: 50% refund
+   • Cancellations made less than 48 hours before event: No refund
+   • Force majeure events will be evaluated case by case
+
+5. Service and Equipment
+   • Standard service duration is 4 hours
+   • Additional charges apply for overtime service
+   • Any damage to equipment will be charged at replacement cost
+   • Setup and cleanup time is included in service duration
+
+6. Food Safety and Allergies
+   • We cannot guarantee an allergen-free environment
+   • Client must inform of any allergies in advance
+   • Leftover food cannot be packaged for takeaway due to food safety regulations
+   • All food is prepared in FSSAI certified facilities
+
+7. Force Majeure
+   • Company not liable for failure to perform due to circumstances beyond control
+   • Includes natural disasters, strikes, accidents, government actions
+   • Alternative arrangements will be discussed if such situations arise
+''';
+
   void calculateTotals() {
     subtotal =
         widget.cartItems.fold(0.0, (sum, item) => sum + (item['price'] ?? 0.0));
@@ -197,14 +240,6 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
         children: [
           pw.Container(
             alignment: pw.Alignment.center,
-            child: pw.Text(
-              'Thank you for your business!',
-              style: pw.TextStyle(
-                font: font,
-                color: PdfColors.grey700,
-                fontSize: 12,
-              ),
-            ),
           ),
           pw.SizedBox(height: 10),
           pw.Text(
@@ -297,7 +332,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                   ),
                 ],
 
-                // Footer
+                // Footer with page number
                 pw.Spacer(),
                 buildFooter(context),
               ],
@@ -306,6 +341,57 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
         ),
       );
     }
+
+    // Add Terms and Conditions page
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        build: (context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              // Header for T&C page
+              pw.Center(
+                child: pw.Text(
+                  'Terms and Conditions',
+                  style: pw.TextStyle(
+                    font: boldFont,
+                    fontSize: 20,
+                    color: PdfColors.black,
+                  ),
+                ),
+              ),
+              pw.SizedBox(height: 20),
+
+              // Terms and Conditions content
+              pw.Text(
+                termsAndConditions,
+                style: pw.TextStyle(font: font, fontSize: 10),
+              ),
+
+              // Spacer to push thank you message to bottom
+              pw.Spacer(),
+
+              // Thank you message only on the last page
+              pw.Center(
+                child: pw.Text(
+                  'Thank you for your business!',
+                  style: pw.TextStyle(
+                    font: boldFont,
+                    color: PdfColors.grey700,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              pw.SizedBox(height: 10),
+
+              // Footer with page number
+              buildFooter(context),
+            ],
+          );
+        },
+      ),
+    );
 
     // Show the PDF preview
     await showDialog(
