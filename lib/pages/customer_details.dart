@@ -1,4 +1,6 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -102,35 +104,51 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
     // Constants for pagination
     const int itemsPerPage = 10;
     final int totalPages = (widget.cartItems.length / itemsPerPage).ceil();
-
+    final ByteData logoBytes =
+        await rootBundle.load('assets/logos/costcaterlogo.jpg');
+    final Uint8List logoUint8List = logoBytes.buffer.asUint8List();
+    final logoImage = pw.MemoryImage(logoUint8List);
     // Helper function to build the header
     pw.Widget buildHeader() {
-      return pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+      return pw.Column(
         children: [
-          pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
+          // Logo row
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.start,
             children: [
-              pw.Text(
-                'INVOICE',
-                style: pw.TextStyle(
-                  font: boldFont,
-                  fontSize: 40,
-                  color: PdfColors.black,
-                ),
-              ),
-              pw.Text(
-                'Invoice Date: ${orderDateController.text}',
-                style: pw.TextStyle(font: font, fontSize: 12),
-              ),
+              pw.Image(logoImage, width: 200), // Adjust width as needed
             ],
           ),
-          pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.end,
+          pw.SizedBox(height: 20),
+          // Invoice details row
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [
-              pw.Text(
-                'FSSAI No: ${fssainoController.text}',
-                style: pw.TextStyle(font: font, fontSize: 12),
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    'INVOICE',
+                    style: pw.TextStyle(
+                      font: boldFont,
+                      fontSize: 40,
+                      color: PdfColors.black,
+                    ),
+                  ),
+                  pw.Text(
+                    'Invoice Date: ${orderDateController.text}',
+                    style: pw.TextStyle(font: font, fontSize: 12),
+                  ),
+                ],
+              ),
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.end,
+                children: [
+                  pw.Text(
+                    'FSSAI No: ${fssainoController.text}',
+                    style: pw.TextStyle(font: font, fontSize: 12),
+                  ),
+                ],
               ),
             ],
           ),
@@ -243,7 +261,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
           ),
           pw.SizedBox(height: 10),
           pw.Text(
-            'Page ${context.pageNumber} of $totalPages',
+            'Page ${context.pageNumber} of ${totalPages + 1}',
             style: pw.TextStyle(font: font, fontSize: 10),
           ),
         ],
