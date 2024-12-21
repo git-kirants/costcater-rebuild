@@ -24,8 +24,40 @@ class _HomePageState extends State<HomePage> {
   }
 
   // Add the entire tier to the cart
-  void _addTierToCart(Map<String, dynamic> tier) {
-    print("Adding entire tier ${tier['tierName']} to cart.");
+  void _addTierToCart(Map<String, dynamic> tier) async {
+    try {
+      // Reference to the user's document in 'cartItems'
+      final userCartRef =
+          FirebaseFirestore.instance.collection('cartItems').doc(userId);
+
+      // Add all items from the tier to the cart
+      List<Map<String, dynamic>> tierItems =
+          List<Map<String, dynamic>>.from(tier['items']);
+
+      // Create a list of cart items from the tier items
+      List<Map<String, dynamic>> cartItems = tierItems
+          .map((item) => {
+                'item': item['name'],
+                'price': item['price'],
+              })
+          .toList();
+
+      // Update Firestore document: Add all items to the 'items' array
+      await userCartRef.set({
+        'items': FieldValue.arrayUnion(cartItems),
+      }, SetOptions(merge: true));
+
+      // Success feedback
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("${tier['tierName']} tier added to cart!")),
+      );
+    } catch (e) {
+      print("Error adding tier to cart: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text("Failed to add ${tier['tierName']} tier to cart.")),
+      );
+    }
   }
 
 // Add an individual item to the cart

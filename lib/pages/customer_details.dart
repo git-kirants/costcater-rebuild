@@ -52,219 +52,260 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
   }
 
   Future<void> _generateAndShowPDF() async {
-    // Create the PDF document
     final pdf = pw.Document();
     final font = await PdfGoogleFonts.nunitoRegular();
     final boldFont = await PdfGoogleFonts.nunitoBold();
 
-    pdf.addPage(
-      pw.Page(
-        pageFormat: PdfPageFormat.a4,
-        build: (context) {
-          return pw.Column(
+    // Constants for pagination
+    const int itemsPerPage = 10;
+    final int totalPages = (widget.cartItems.length / itemsPerPage).ceil();
+
+    // Helper function to build the header
+    pw.Widget buildHeader() {
+      return pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              // Header
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text(
-                        'INVOICE',
-                        style: pw.TextStyle(
-                          font: boldFont,
-                          fontSize: 40,
-                          color: PdfColors.black,
-                        ),
-                      ),
-                      pw.Text(
-                        'Invoice Date: ${orderDateController.text}',
-                        style: pw.TextStyle(font: font, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.end,
-                    children: [
-                      pw.Text(
-                        'FSSAI No: ${fssainoController.text}',
-                        style: pw.TextStyle(font: font, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              pw.SizedBox(height: 20),
-
-              // Billing Information
-              pw.Container(
-                padding: const pw.EdgeInsets.all(10),
-                decoration: pw.BoxDecoration(
-                  border: pw.Border.all(color: PdfColors.black),
-                ),
-                child: pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        pw.Text('Bill To:',
-                            style: pw.TextStyle(font: boldFont)),
-                        pw.Text(nameController.text,
-                            style: pw.TextStyle(font: font)),
-                        pw.Text(emailController.text,
-                            style: pw.TextStyle(font: font)),
-                        pw.Text(mobileController.text,
-                            style: pw.TextStyle(font: font)),
-                        pw.Text(addressController.text,
-                            style: pw.TextStyle(font: font)),
-                      ],
-                    ),
-                    pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.end,
-                      children: [
-                        pw.Text('Venue:', style: pw.TextStyle(font: boldFont)),
-                        pw.Text(venueController.text,
-                            style: pw.TextStyle(font: font)),
-                        pw.Text('Employee Details:',
-                            style: pw.TextStyle(font: boldFont)),
-                        pw.Text(employeeNameController.text,
-                            style: pw.TextStyle(font: font)),
-                        pw.Text(employeeEmailController.text,
-                            style: pw.TextStyle(font: font)),
-                      ],
-                    ),
-                  ],
+              pw.Text(
+                'INVOICE',
+                style: pw.TextStyle(
+                  font: boldFont,
+                  fontSize: 40,
+                  color: PdfColors.black,
                 ),
               ),
-              pw.SizedBox(height: 20),
-
-              // Items Table
-              pw.Table(
-                border: pw.TableBorder.all(),
-                columnWidths: {
-                  0: const pw.FlexColumnWidth(4),
-                  1: const pw.FlexColumnWidth(2),
-                  2: const pw.FlexColumnWidth(2),
-                  3: const pw.FlexColumnWidth(2),
-                },
-                children: [
-                  // Table Header
-                  pw.TableRow(
-                    decoration: pw.BoxDecoration(color: PdfColors.grey300),
-                    children: [
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(5),
-                        child: pw.Text('Item',
-                            style: pw.TextStyle(font: boldFont)),
-                      ),
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(5),
-                        child: pw.Text('Price',
-                            style: pw.TextStyle(font: boldFont)),
-                      ),
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(5),
-                        child: pw.Text('Plates',
-                            style: pw.TextStyle(font: boldFont)),
-                      ),
-                      pw.Padding(
-                        padding: const pw.EdgeInsets.all(5),
-                        child: pw.Text('Total',
-                            style: pw.TextStyle(font: boldFont)),
-                      ),
-                    ],
-                  ),
-                  ...widget.cartItems
-                      .map((item) => pw.TableRow(
-                            children: [
-                              pw.Padding(
-                                padding: const pw.EdgeInsets.all(5),
-                                child: pw.Text(item['item'] ?? '',
-                                    style: pw.TextStyle(font: font)),
-                              ),
-                              pw.Padding(
-                                padding: const pw.EdgeInsets.all(5),
-                                child: pw.Text(
-                                    '\$${(item['price'] ?? 0).toStringAsFixed(2)}',
-                                    style: pw.TextStyle(font: font)),
-                              ),
-                              pw.Padding(
-                                padding: const pw.EdgeInsets.all(5),
-                                child: pw.Text(plates.toString(),
-                                    style: pw.TextStyle(font: font)),
-                              ),
-                              pw.Padding(
-                                padding: const pw.EdgeInsets.all(5),
-                                child: pw.Text(
-                                    '\$${((item['price'] ?? 0) * plates).toStringAsFixed(2)}',
-                                    style: pw.TextStyle(font: font)),
-                              ),
-                            ],
-                          ))
-                      .toList(),
-                ],
-              ),
-              pw.SizedBox(height: 20),
-
-              // Summary
-              pw.Container(
-                alignment: pw.Alignment.centerRight,
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.end,
-                  children: [
-                    pw.Row(
-                      mainAxisAlignment: pw.MainAxisAlignment.end,
-                      children: [
-                        pw.Text('Subtotal: ',
-                            style: pw.TextStyle(font: boldFont)),
-                        pw.Text('\$${subtotal.toStringAsFixed(2)}',
-                            style: pw.TextStyle(font: font)),
-                      ],
-                    ),
-                    pw.Row(
-                      mainAxisAlignment: pw.MainAxisAlignment.end,
-                      children: [
-                        pw.Text('Tax (${taxController.text}%): ',
-                            style: pw.TextStyle(font: boldFont)),
-                        pw.Text(
-                            '\$${(subtotal * (double.tryParse(taxController.text) ?? 0) / 100).toStringAsFixed(2)}',
-                            style: pw.TextStyle(font: font)),
-                      ],
-                    ),
-                    pw.Divider(),
-                    pw.Row(
-                      mainAxisAlignment: pw.MainAxisAlignment.end,
-                      children: [
-                        pw.Text('Total: ', style: pw.TextStyle(font: boldFont)),
-                        pw.Text('\$${roundedPrice.toStringAsFixed(2)}',
-                            style: pw.TextStyle(font: font, fontSize: 16)),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              pw.Spacer(),
-              // Footer
-              pw.Container(
-                alignment: pw.Alignment.center,
-                child: pw.Text(
-                  'Thank you for your business!',
-                  style: pw.TextStyle(
-                    font: font,
-                    color: PdfColors.grey700,
-                    fontSize: 12,
-                  ),
-                ),
+              pw.Text(
+                'Invoice Date: ${orderDateController.text}',
+                style: pw.TextStyle(font: font, fontSize: 12),
               ),
             ],
-          );
-        },
-      ),
-    );
+          ),
+          pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.end,
+            children: [
+              pw.Text(
+                'FSSAI No: ${fssainoController.text}',
+                style: pw.TextStyle(font: font, fontSize: 12),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+
+    // Helper function to build billing information
+    pw.Widget buildBillingInfo() {
+      return pw.Container(
+        padding: const pw.EdgeInsets.all(10),
+        decoration: pw.BoxDecoration(
+          border: pw.Border.all(color: PdfColors.black),
+        ),
+        child: pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          children: [
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text('Bill To:', style: pw.TextStyle(font: boldFont)),
+                pw.Text(nameController.text, style: pw.TextStyle(font: font)),
+                pw.Text(emailController.text, style: pw.TextStyle(font: font)),
+                pw.Text(mobileController.text, style: pw.TextStyle(font: font)),
+                pw.Text(addressController.text,
+                    style: pw.TextStyle(font: font)),
+              ],
+            ),
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.end,
+              children: [
+                pw.Text('Venue:', style: pw.TextStyle(font: boldFont)),
+                pw.Text(venueController.text, style: pw.TextStyle(font: font)),
+                pw.Text('Employee Details:',
+                    style: pw.TextStyle(font: boldFont)),
+                pw.Text(employeeNameController.text,
+                    style: pw.TextStyle(font: font)),
+                pw.Text(employeeEmailController.text,
+                    style: pw.TextStyle(font: font)),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Helper function to build table header
+    pw.TableRow buildTableHeader(pw.Font boldFont) {
+      return pw.TableRow(
+        decoration: pw.BoxDecoration(color: PdfColors.grey300),
+        children: [
+          pw.Padding(
+            padding: const pw.EdgeInsets.all(5),
+            child: pw.Text('Item', style: pw.TextStyle(font: boldFont)),
+          ),
+          pw.Padding(
+            padding: const pw.EdgeInsets.all(5),
+            child: pw.Text('Price', style: pw.TextStyle(font: boldFont)),
+          ),
+          pw.Padding(
+            padding: const pw.EdgeInsets.all(5),
+            child: pw.Text('Plates', style: pw.TextStyle(font: boldFont)),
+          ),
+          pw.Padding(
+            padding: const pw.EdgeInsets.all(5),
+            child: pw.Text('Total', style: pw.TextStyle(font: boldFont)),
+          ),
+        ],
+      );
+    }
+
+    // Helper function to build table rows for items
+    List<pw.TableRow> buildTableRows(List<dynamic> items, pw.Font font) {
+      return items
+          .map((item) => pw.TableRow(
+                children: [
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.all(5),
+                    child: pw.Text(item['item'] ?? '',
+                        style: pw.TextStyle(font: font)),
+                  ),
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.all(5),
+                    child: pw.Text(
+                        '\$${(item['price'] ?? 0).toStringAsFixed(2)}',
+                        style: pw.TextStyle(font: font)),
+                  ),
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.all(5),
+                    child: pw.Text(plates.toString(),
+                        style: pw.TextStyle(font: font)),
+                  ),
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.all(5),
+                    child: pw.Text(
+                        '\$${((item['price'] ?? 0) * plates).toStringAsFixed(2)}',
+                        style: pw.TextStyle(font: font)),
+                  ),
+                ],
+              ))
+          .toList();
+    }
+
+    // Helper function to build footer
+    pw.Widget buildFooter(pw.Context context) {
+      return pw.Column(
+        children: [
+          pw.Container(
+            alignment: pw.Alignment.center,
+            child: pw.Text(
+              'Thank you for your business!',
+              style: pw.TextStyle(
+                font: font,
+                color: PdfColors.grey700,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          pw.SizedBox(height: 10),
+          pw.Text(
+            'Page ${context.pageNumber} of $totalPages',
+            style: pw.TextStyle(font: font, fontSize: 10),
+          ),
+        ],
+      );
+    }
+
+    // Generate pages
+    for (int pageNum = 0; pageNum < totalPages; pageNum++) {
+      final startIndex = pageNum * itemsPerPage;
+      final endIndex = (startIndex + itemsPerPage <= widget.cartItems.length)
+          ? startIndex + itemsPerPage
+          : widget.cartItems.length;
+      final pageItems = widget.cartItems.sublist(startIndex, endIndex);
+
+      pdf.addPage(
+        pw.Page(
+          pageFormat: PdfPageFormat.a4,
+          build: (context) {
+            return pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                // Header (only on first page)
+                if (pageNum == 0) ...[
+                  buildHeader(),
+                  pw.SizedBox(height: 20),
+                  buildBillingInfo(),
+                  pw.SizedBox(height: 20),
+                ],
+
+                // Items table
+                pw.Expanded(
+                  child: pw.Table(
+                    border: pw.TableBorder.all(),
+                    columnWidths: {
+                      0: const pw.FlexColumnWidth(4),
+                      1: const pw.FlexColumnWidth(2),
+                      2: const pw.FlexColumnWidth(2),
+                      3: const pw.FlexColumnWidth(2),
+                    },
+                    children: [
+                      buildTableHeader(boldFont),
+                      ...buildTableRows(pageItems, font),
+                    ],
+                  ),
+                ),
+
+                // Summary (only on last page)
+                if (pageNum == totalPages - 1) ...[
+                  pw.SizedBox(height: 20),
+                  pw.Container(
+                    alignment: pw.Alignment.centerRight,
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.end,
+                      children: [
+                        pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.end,
+                          children: [
+                            pw.Text('Subtotal: ',
+                                style: pw.TextStyle(font: boldFont)),
+                            pw.Text('\$${subtotal.toStringAsFixed(2)}',
+                                style: pw.TextStyle(font: font)),
+                          ],
+                        ),
+                        pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.end,
+                          children: [
+                            pw.Text('Tax (${taxController.text}%): ',
+                                style: pw.TextStyle(font: boldFont)),
+                            pw.Text(
+                                '\$${(subtotal * (double.tryParse(taxController.text) ?? 0) / 100).toStringAsFixed(2)}',
+                                style: pw.TextStyle(font: font)),
+                          ],
+                        ),
+                        pw.Divider(),
+                        pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.end,
+                          children: [
+                            pw.Text('Total: ',
+                                style: pw.TextStyle(font: boldFont)),
+                            pw.Text('\$${roundedPrice.toStringAsFixed(2)}',
+                                style: pw.TextStyle(font: font, fontSize: 16)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                // Footer
+                pw.Spacer(),
+                buildFooter(context),
+              ],
+            );
+          },
+        ),
+      );
+    }
 
     // Show the PDF preview
     await showDialog(
