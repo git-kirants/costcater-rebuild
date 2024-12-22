@@ -7,18 +7,17 @@ plugins {
 }
 
 android {
-
     namespace = "com.company.costcater.costcater"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17  // Update to JDK 17
+        targetCompatibility = JavaVersion.VERSION_17  // Update to JDK 17
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_1_8
+        jvmTarget = "17"  // Update to JDK 17
     }
 
     defaultConfig {
@@ -31,7 +30,7 @@ android {
     }
 
     buildFeatures {
-        buildConfig true  // Enable BuildConfig to allow custom fields for Firebase
+        buildConfig true // Enable BuildConfig to allow custom fields for Firebase
     }
 
     buildTypes {
