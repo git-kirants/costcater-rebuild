@@ -95,7 +95,7 @@ class _SplashScreenState extends State<SplashScreen> {
       backgroundColor: Colors.white,
       body: Center(
         child: Image.asset(
-          'assets/logos/costcaterlogo.jpg',
+          'assets/logos/costcaterlogo.png',
           width: 200,
           height: 200,
           fit: BoxFit.contain,

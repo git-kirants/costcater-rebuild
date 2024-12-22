@@ -49,19 +49,37 @@ class _SignupPageState extends State<SignupPage> {
     });
 
     try {
+      // First check if a user document already exists with this email
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(emailController.text)
+          .get();
+
+      if (userDoc.exists) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('An account with this email already exists')),
+        );
+        setState(() {
+          isLoading = false;
+        });
+        return;
+      }
+
+      // Create the authentication account
       UserCredential userCredential =
           await _auth.createUserWithEmailAndPassword(
         email: emailController.text,
         password: passwordController.text,
       );
 
+      // Create the user document with email as document ID
       await FirebaseFirestore.instance
           .collection('users')
-          .doc(userCredential.user?.uid)
+          .doc(emailController.text)
           .set({
         'name': nameController.text,
-        'email': emailController.text,
-        'created_at': Timestamp.now(),
+        'created_at': FieldValue.serverTimestamp(),
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -72,9 +90,11 @@ class _SignupPageState extends State<SignupPage> {
     } on FirebaseAuthException catch (e) {
       String errorMessage = 'Error: ${e.message}';
       if (e.code == 'email-already-in-use') {
-        errorMessage = 'This email is already in use.';
+        errorMessage = 'This email is already registered.';
       } else if (e.code == 'weak-password') {
         errorMessage = 'The password is too weak.';
+      } else if (e.code == 'invalid-email') {
+        errorMessage = 'Please enter a valid email address.';
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -101,8 +121,7 @@ class _SignupPageState extends State<SignupPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Add a spacer to push content towards center
-              const SizedBox(height: 100), // Adjust this height as needed
+              const SizedBox(height: 100),
               Text(
                 'Create Account',
                 style: TextStyle(
@@ -124,8 +143,6 @@ class _SignupPageState extends State<SignupPage> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 40),
-
-              // Name Input
               _buildTextField(
                 controller: nameController,
                 labelText: 'Name',
@@ -133,8 +150,6 @@ class _SignupPageState extends State<SignupPage> {
                 icon: Icons.person_outline,
               ),
               const SizedBox(height: 16),
-
-              // Email Input
               _buildTextField(
                 controller: emailController,
                 labelText: 'Email',
@@ -142,8 +157,6 @@ class _SignupPageState extends State<SignupPage> {
                 icon: Icons.email_outlined,
               ),
               const SizedBox(height: 16),
-
-              // Password Input
               _buildTextField(
                 controller: passwordController,
                 labelText: 'Password',
@@ -152,8 +165,6 @@ class _SignupPageState extends State<SignupPage> {
                 obscureText: true,
               ),
               const SizedBox(height: 16),
-
-              // Confirm Password Input
               _buildTextField(
                 controller: confirmPasswordController,
                 labelText: 'Confirm Password',
@@ -162,8 +173,6 @@ class _SignupPageState extends State<SignupPage> {
                 obscureText: true,
               ),
               const SizedBox(height: 24),
-
-              // Signup Button
               ElevatedButton(
                 onPressed: isLoading ? null : signup,
                 style: ElevatedButton.styleFrom(
@@ -186,8 +195,6 @@ class _SignupPageState extends State<SignupPage> {
                       ),
               ),
               const SizedBox(height: 16),
-
-              // Login Navigation
               TextButton(
                 onPressed: () {
                   Navigator.pop(context);
@@ -219,7 +226,6 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-  // Custom TextField widget for consistent styling
   Widget _buildTextField({
     required TextEditingController controller,
     required String labelText,

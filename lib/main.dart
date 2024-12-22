@@ -50,7 +50,7 @@ class _SplashScreenState extends State<SplashScreen> {
       backgroundColor: Colors.white, // Set the background color
       body: Center(
         child: Image.asset(
-          'assets/logos/costcaterlogo.jpg', // Path to your logo
+          'assets/logos/costcaterlogo.png', // Path to your logo
           width: 200, // Adjust size as needed
           height: 200,
           fit: BoxFit.contain,

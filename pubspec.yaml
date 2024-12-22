@@ -47,6 +47,8 @@ dependencies:
   image_picker: ^1.1.2
   flutter_plugin_android_lifecycle: ^2.0.0
   shared_preferences: ^2.1.0
+  flutter_svg: ^2.0.4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -58,7 +60,7 @@ dev_dependencies:
 flutter_icons:
   android: true
   ios: true
-  image_path: "assets/logos/smalllogo.jpg"
+  image_path: "assets/logos/smalllogo.png"
 # The following section is specific to Flutter packages.
 flutter:
   uses-material-design: true
@@ -73,5 +75,5 @@ flutter:
           weight: 700
 
   assets:
-    - assets/logos/costcaterlogo.jpg
-    - assets/logos/smalllogo.jpg
+    - assets/logos/costcaterlogo.png
+    - assets/logos/smalllogo.png

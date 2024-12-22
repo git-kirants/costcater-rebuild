@@ -78,7 +78,7 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(height: 50), // Adjust to your preference
               Center(
                 child: Image.asset(
-                  'assets/logos/costcaterlogo.jpg', // Path to your logo image
+                  'assets/logos/costcaterlogo.png', // Path to your logo image
                   height: 200, // Adjust the height as necessary
                   width: 200, // Adjust the width as necessary
                 ),

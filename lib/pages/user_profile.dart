@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'login_page.dart';
 import 'dart:io';
 
@@ -16,11 +17,102 @@ class UserProfilePage extends StatefulWidget {
 class _UserProfilePageState extends State<UserProfilePage> {
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
+  String? _userName;
+  String? _fssaiNo;
+  String? _termsAndConditions;
+  final TextEditingController _fssaiController = TextEditingController();
+  final TextEditingController _termsController = TextEditingController();
+  bool _isEditingFSSAI = false;
+  bool _isEditingTerms = false;
 
   @override
   void initState() {
     super.initState();
     _loadProfilePicture();
+    _loadUserData();
+  }
+
+  @override
+  void dispose() {
+    _fssaiController.dispose();
+    _termsController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.email)
+          .get();
+
+      if (userDoc.exists) {
+        setState(() {
+          _userName = userDoc.get('name') as String;
+          _fssaiNo = userDoc.get('FSSAI') as String?;
+          _termsAndConditions = userDoc.get('TermsAndConditions') as String?;
+          if (_fssaiNo != null) {
+            _fssaiController.text = _fssaiNo!;
+          }
+          if (_termsAndConditions != null) {
+            _termsController.text = _termsAndConditions!;
+          }
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to load user data')),
+      );
+    }
+  }
+
+  Future<void> _updateFSSAI() async {
+    try {
+      final String newFSSAI = _fssaiController.text.trim();
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.email)
+          .update({'FSSAI': newFSSAI});
+
+      setState(() {
+        _fssaiNo = newFSSAI;
+        _isEditingFSSAI = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('FSSAI number updated successfully')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to update FSSAI number')),
+      );
+    }
+  }
+
+  Future<void> _updateTerms() async {
+    try {
+      final String newTerms = _termsController.text.trim();
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.email)
+          .update({'TermsAndConditions': newTerms});
+
+      setState(() {
+        _termsAndConditions = newTerms;
+        _isEditingTerms = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Terms and Conditions updated successfully')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to update Terms and Conditions')),
+      );
+    }
   }
 
   Future<void> _loadProfilePicture() async {
@@ -63,6 +155,208 @@ class _UserProfilePageState extends State<UserProfilePage> {
         const SnackBar(content: Text('Failed to pick image')),
       );
     }
+  }
+
+  Widget _buildFSSAISection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'FSSAI Number',
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.grey,
+            fontFamily: 'SFPro',
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (_isEditingFSSAI)
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _fssaiController,
+                  decoration: const InputDecoration(
+                    hintText: 'Enter FSSAI Number',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.number,
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.check, color: Color(0xFF52ed28)),
+                onPressed: _updateFSSAI,
+              ),
+              IconButton(
+                icon: const Icon(Icons.close, color: Colors.red),
+                onPressed: () {
+                  setState(() {
+                    _isEditingFSSAI = false;
+                    _fssaiController.text = _fssaiNo ?? '';
+                  });
+                },
+              ),
+            ],
+          )
+        else
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _fssaiNo ?? 'Not set',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontFamily: 'SFPro',
+                    fontWeight: FontWeight.w500,
+                    color: _fssaiNo == null ? Colors.grey : Colors.black,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.edit, color: Color(0xFF52ed28)),
+                onPressed: () {
+                  setState(() {
+                    _isEditingFSSAI = true;
+                  });
+                },
+              ),
+            ],
+          ),
+      ],
+    );
+  }
+
+  Widget _buildTermsSection() {
+    // Check if the Terms and Conditions are long
+    bool _isLongTerms = _termsAndConditions != null &&
+        _termsAndConditions!.split('\n').length > 6;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Terms and Conditions',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+                fontFamily: 'SFPro',
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.edit, color: Color(0xFF52ed28)),
+              onPressed: () {
+                setState(() {
+                  _isEditingTerms = true;
+                });
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (_isEditingTerms)
+          Column(
+            children: [
+              TextField(
+                controller: _termsController,
+                decoration: const InputDecoration(
+                  hintText: 'Enter Terms and Conditions',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 5,
+                keyboardType: TextInputType.multiline,
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton.icon(
+                    icon: const Icon(Icons.check, color: Color(0xFF52ed28)),
+                    label: const Text('Save',
+                        style: TextStyle(color: Color(0xFF52ed28))),
+                    onPressed: _updateTerms,
+                  ),
+                  TextButton.icon(
+                    icon: const Icon(Icons.close, color: Colors.red),
+                    label: const Text('Cancel',
+                        style: TextStyle(color: Colors.red)),
+                    onPressed: () {
+                      setState(() {
+                        _isEditingTerms = false;
+                        _termsController.text = _termsAndConditions ?? '';
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ],
+          )
+        else
+          Column(
+            children: [
+              Text(
+                _termsAndConditions != null
+                    ? (_termsAndConditions!.split('\n').take(6).join('\n') +
+                        (_isLongTerms ? '...' : ''))
+                    : 'Not set',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontFamily: 'SFPro',
+                  fontWeight: FontWeight.w500,
+                  color:
+                      _termsAndConditions == null ? Colors.grey : Colors.black,
+                ),
+              ),
+              if (_isLongTerms)
+                InkWell(
+                  onTap: () {
+                    setState(() {
+                      _isEditingTerms = false; // Close editing mode
+                    });
+                    // Display full Terms and Conditions
+                    showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return AlertDialog(
+                          title: const Text('Terms and Conditions'),
+                          content: SingleChildScrollView(
+                            child: Text(
+                                _termsAndConditions ?? 'No Terms available'),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                              },
+                              child: const Text(
+                                'Close',
+                                style: TextStyle(
+                                  color: Color(0xFF52ed28), // Green color
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  },
+                  child: const Text(
+                    'Read More',
+                    style: TextStyle(
+                      color: Color(0xFF52ed28),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 20),
+            ],
+          ),
+      ],
+    );
   }
 
   @override
@@ -146,7 +440,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
             LayoutBuilder(
               builder: (context, constraints) {
                 return SizedBox(
-                  width: constraints.maxWidth * 0.9, // 90% of screen width
+                  width: constraints.maxWidth * 0.9,
                   child: Card(
                     elevation: 4,
                     shape: RoundedRectangleBorder(
@@ -157,6 +451,26 @@ class _UserProfilePageState extends State<UserProfilePage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          if (_userName != null) ...[
+                            const Text(
+                              'Name',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey,
+                                fontFamily: 'SFPro',
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              _userName!,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontFamily: 'SFPro',
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                          ],
                           const Text(
                             'Email',
                             style: TextStyle(
@@ -174,6 +488,10 @@ class _UserProfilePageState extends State<UserProfilePage> {
                               fontWeight: FontWeight.w500,
                             ),
                           ),
+                          const SizedBox(height: 20),
+                          _buildFSSAISection(),
+                          const SizedBox(height: 20),
+                          _buildTermsSection(),
                         ],
                       ),
                     ),
@@ -185,7 +503,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
             LayoutBuilder(
               builder: (context, constraints) {
                 return SizedBox(
-                  width: constraints.maxWidth * 0.9, // 90% of screen width
+                  width: constraints.maxWidth * 0.9,
                   child: ElevatedButton.icon(
                     onPressed: () {
                       Navigator.pushAndRemoveUntil(

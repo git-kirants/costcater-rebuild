@@ -1,17 +1,24 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:math';
+import 'package:intl/intl.dart';
 
 class CustomerDetailsPage extends StatefulWidget {
   final List<dynamic> cartItems;
   final int noOfPlates;
+  final String email;
 
-  const CustomerDetailsPage({super.key, 
+  const CustomerDetailsPage({
+    super.key,
     required this.cartItems,
     required double totalAmount,
     required this.noOfPlates,
+    required this.email,
   });
 
   @override
@@ -29,7 +36,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
   final TextEditingController employeeEmailController = TextEditingController();
   final TextEditingController phoneNumberController = TextEditingController();
   final TextEditingController orderDateController = TextEditingController();
-  final TextEditingController fssainoController = TextEditingController();
+  final TextEditingController fssaiController = TextEditingController();
   final TextEditingController taxController = TextEditingController();
 
   double plates = 0;
@@ -39,53 +46,15 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
   String date = '';
 
 // Terms and Conditions template
-  final String termsAndConditions = '''
-1. Booking and Confirmation
-   • All bookings must be confirmed with a 50% advance payment
-   • Final guest count must be confirmed 72 hours prior to the event
-   • Minimum guest count requirements may apply
+  String? termsAndConditions;
 
-2. Payment Terms
-   • 50% deposit required to secure booking
-   • Balance payment due 24 hours before the event
-   • Accepted payment methods: Cash, Bank Transfer, Credit Card
-   • Additional charges may apply for extended service hours
-
-3. Food and Service
-   • Menu selections must be finalized 7 days prior to the event
-   • Food quantities are prepared based on the final guest count
-   • Special dietary requirements must be communicated in advance
-   • Food safety and quality standards are maintained as per FSSAI guidelines
-
-4. Cancellation Policy
-   • Cancellations made 7 days or more before event: 80% refund
-   • Cancellations made 3-6 days before event: 50% refund
-   • Cancellations made less than 48 hours before event: No refund
-   • Force majeure events will be evaluated case by case
-
-5. Service and Equipment
-   • Standard service duration is 4 hours
-   • Additional charges apply for overtime service
-   • Any damage to equipment will be charged at replacement cost
-   • Setup and cleanup time is included in service duration
-
-6. Food Safety and Allergies
-   • We cannot guarantee an allergen-free environment
-   • Client must inform of any allergies in advance
-   • Leftover food cannot be packaged for takeaway due to food safety regulations
-   • All food is prepared in FSSAI certified facilities
-
-7. Force Majeure
-   • Company not liable for failure to perform due to circumstances beyond control
-   • Includes natural disasters, strikes, accidents, government actions
-   • Alternative arrangements will be discussed if such situations arise
-''';
+  // Add function to fetch terms and conditions
 
   void calculateTotals() {
     subtotal =
         widget.cartItems.fold(0.0, (sum, item) => sum + (item['price'] ?? 0.0));
     total = subtotal * widget.noOfPlates;
-    roundedPrice = (total + 5).toDouble();
+    roundedPrice = (total).toDouble();
   }
 
   @override
@@ -95,19 +64,93 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
     calculateTotals();
   }
 
+  Future<String> fetchFssaiNumber(String email) async {
+    try {
+      // Trim and prepare the email for the query
+      final trimmedEmail = email.trim();
+      debugPrint('Fetching FSSAI No for email: $trimmedEmail');
+
+      // Fetch the document snapshot from Firestore
+      final docSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(trimmedEmail)
+          .get();
+
+      // Check if the document exists
+      if (!docSnapshot.exists || docSnapshot.data() == null) {
+        throw Exception('User document not found or no data available');
+      }
+
+      // Extract the FSSAI number
+      final fssaiNo = docSnapshot.data()?['FSSAI'] ?? 'N/A'; // Default to 'N/A'
+      debugPrint('Fetched FSSAI No: $fssaiNo');
+
+      return fssaiNo;
+    } catch (e) {
+      debugPrint('Error fetching FSSAI No: $e');
+      return 'Error fetching FSSAI No'; // Return a fallback message
+    }
+  }
+
+  Future<String> fetchTermsAndConditions() async {
+    try {
+      final email = widget.email.trim();
+      debugPrint('Fetching T&C for email: $email');
+
+      final docSnapshot =
+          await FirebaseFirestore.instance.collection('users').doc(email).get();
+
+      debugPrint('Document exists: ${docSnapshot.exists}');
+
+      if (!docSnapshot.exists) {
+        return 'Terms and conditions not found for this user.';
+      }
+
+      final data = docSnapshot.data();
+      debugPrint('Document data: $data');
+
+      if (data == null || !data.containsKey('TermsAndConditions')) {
+        return 'Terms and conditions section is empty.';
+      }
+
+      final terms = data['TermsAndConditions'] as String;
+      if (terms.isEmpty) {
+        return 'Terms and conditions are empty.';
+      }
+
+      debugPrint('Terms length: ${terms.length}');
+      debugPrint(
+          'First 100 chars of terms: ${terms.substring(0, terms.length > 100 ? 100 : terms.length)}');
+
+      return terms;
+    } catch (e) {
+      debugPrint('Error fetching terms: $e');
+      return 'Error loading terms and conditions: $e';
+    }
+  }
+
   Future<void> _generateAndShowPDF() async {
+    //PDF
     final pdf = pw.Document();
     final font = await PdfGoogleFonts.nunitoRegular();
     final boldFont = await PdfGoogleFonts.nunitoBold();
-
+    //feteching Terms
+    final terms = await fetchTermsAndConditions();
     // Constants for pagination
     const int itemsPerPage = 10;
     final int totalPages = (widget.cartItems.length / itemsPerPage).ceil();
     final ByteData logoBytes =
-        await rootBundle.load('assets/logos/costcaterlogo.jpg');
+        await rootBundle.load('assets/logos/costcaterlogo.png');
     final Uint8List logoUint8List = logoBytes.buffer.asUint8List();
     final logoImage = pw.MemoryImage(logoUint8List);
+
     // Helper function to build the header
+
+    // Fetching FSSAI number before generating PDF
+    final fssaiNo = await fetchFssaiNumber(widget.email); // Await FSSAI number
+    //Date
+    final formattedDate = DateFormat('dd-MM-yyyy').format(DateTime.now());
+
     pw.Widget buildHeader() {
       return pw.Column(
         children: [
@@ -135,7 +178,11 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                     ),
                   ),
                   pw.Text(
-                    'Invoice Date: ${orderDateController.text}',
+                    'Invoice Date: $formattedDate',
+                    style: pw.TextStyle(font: font, fontSize: 12),
+                  ),
+                  pw.Text(
+                    'Order Date: ${orderDateController.text.contains('/') ? orderDateController.text.replaceAll('/', '-') : orderDateController.text}',
                     style: pw.TextStyle(font: font, fontSize: 12),
                   ),
                 ],
@@ -144,7 +191,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                 crossAxisAlignment: pw.CrossAxisAlignment.end,
                 children: [
                   pw.Text(
-                    'FSSAI No: ${fssainoController.text}',
+                    'FSSAI No: $fssaiNo',
                     style: pw.TextStyle(font: font, fontSize: 12),
                   ),
                 ],
@@ -324,24 +371,22 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                                 style: pw.TextStyle(font: font)),
                           ],
                         ),
-                        pw.Row(
-                          mainAxisAlignment: pw.MainAxisAlignment.end,
-                          children: [
-                            pw.Text('Tax (${taxController.text}%): ',
-                                style: pw.TextStyle(font: boldFont)),
-                            pw.Text(
-                                '\$${(subtotal * (double.tryParse(taxController.text) ?? 0) / 100).toStringAsFixed(2)}',
-                                style: pw.TextStyle(font: font)),
-                          ],
-                        ),
                         pw.Divider(),
                         pw.Row(
                           mainAxisAlignment: pw.MainAxisAlignment.end,
                           children: [
-                            pw.Text('Total: ',
-                                style: pw.TextStyle(font: boldFont)),
-                            pw.Text('\$${roundedPrice.toStringAsFixed(2)}',
-                                style: pw.TextStyle(font: font, fontSize: 16)),
+                            pw.Text(
+                              'TOTAL : ',
+                              style: pw.TextStyle(font: boldFont, fontSize: 16),
+                            ),
+                            pw.Text(
+                              '\$${subtotal.toStringAsFixed(2)} X ${widget.noOfPlates} = \n',
+                              style: pw.TextStyle(font: font),
+                            ),
+                            pw.Text(
+                              '\$${total.toStringAsFixed(2)}',
+                              style: pw.TextStyle(font: boldFont, fontSize: 16),
+                            ),
                           ],
                         ),
                       ],
@@ -360,56 +405,56 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
     }
 
     // Add Terms and Conditions page
+    // Add Terms and Conditions page with enhanced formatting
+    // Add Terms and Conditions page
+    // Add Terms and Conditions page
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(40), // Add margin to ensure text fits
         build: (context) {
+          // Debug print to verify terms content
+          debugPrint('Terms content: $terms');
+
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              // Header for T&C page
+              // Simple header
               pw.Center(
                 child: pw.Text(
                   'Terms and Conditions',
                   style: pw.TextStyle(
                     font: boldFont,
-                    fontSize: 20,
-                    color: PdfColors.black,
+                    fontSize: 16,
                   ),
                 ),
               ),
               pw.SizedBox(height: 20),
 
-              // Terms and Conditions content
-              pw.Text(
-                termsAndConditions,
-                style: pw.TextStyle(font: font, fontSize: 10),
-              ),
-
-              // Spacer to push thank you message to bottom
-              pw.Spacer(),
-
-              // Thank you message only on the last page
-              pw.Center(
-                child: pw.Text(
-                  'Thank you for your business!',
-                  style: pw.TextStyle(
-                    font: boldFont,
-                    color: PdfColors.grey700,
-                    fontSize: 14,
+              // Terms and Conditions content with proper wrapping
+              pw.Expanded(
+                child: pw.Container(
+                  child: pw.Text(
+                    terms ??
+                        'No terms and conditions available', // Add null check
+                    style: pw.TextStyle(
+                      font: font,
+                      fontSize: 10,
+                    ),
+                    textAlign: pw.TextAlign.justify,
+                    maxLines: null, // Allow multiple lines
                   ),
                 ),
               ),
-              pw.SizedBox(height: 10),
 
-              // Footer with page number
+              // Footer
+              pw.Spacer(),
               buildFooter(context),
             ],
           );
         },
       ),
     );
-
     // Show the PDF preview
     await showDialog(
       context: context,
@@ -452,8 +497,6 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                     _buildTextField(employeeEmailController, 'Employee Email'),
                     _buildTextField(phoneNumberController, 'Phone Number'),
                     _buildTextField(orderDateController, 'Order Date'),
-                    _buildTextField(fssainoController, 'FSSAI No'),
-                    _buildTextField(taxController, 'Tax'),
                   ],
                 ),
               ),

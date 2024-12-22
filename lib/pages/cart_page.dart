@@ -264,6 +264,7 @@ class _CartPageState extends State<CartPage> {
                                       builder: (context) => CustomerDetailsPage(
                                         cartItems: cartItems,
                                         totalAmount: totalAmount,
+                                        email: userId,
                                         noOfPlates: int.tryParse(
                                                 noOfPlatesController.text) ??
                                             0,

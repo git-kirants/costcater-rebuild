@@ -131,7 +131,8 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: Colors.white,
         elevation: 1.0,
         leading: IconButton(
-          icon: const Icon(Icons.person, color: Color(0xFF52ed28)),
+          icon: const Icon(Icons.account_circle_outlined,
+              color: Color(0xFF52ed28)),
           onPressed: () {
             Navigator.push(
               context,
@@ -145,7 +146,7 @@ class _HomePageState extends State<HomePage> {
           child: SizedBox(
             height: 40, // Adjust this value to control logo height
             child: Image.asset(
-              'assets/logos/costcaterlogo.jpg',
+              'assets/logos/costcaterlogo.png',
               fit: BoxFit.contain,
             ),
           ),
