@@ -405,9 +405,6 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
     }
 
     // Add Terms and Conditions page
-    // Add Terms and Conditions page with enhanced formatting
-    // Add Terms and Conditions page
-    // Add Terms and Conditions page
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
@@ -435,8 +432,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
               pw.Expanded(
                 child: pw.Container(
                   child: pw.Text(
-                    terms ??
-                        'No terms and conditions available', // Add null check
+                    terms, // Add null check
                     style: pw.TextStyle(
                       font: font,
                       fontSize: 10,
