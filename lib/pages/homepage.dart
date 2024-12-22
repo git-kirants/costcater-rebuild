@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'cart_page.dart';
 import 'create_tier_page.dart';
+import 'user_profile.dart';
 
 class HomePage extends StatefulWidget {
   final String email; // Accept email as a parameter
@@ -127,16 +128,28 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Menu Tiers',
-          style: TextStyle(
-            color: Colors.black87,
-            fontFamily: 'SFPro',
-            fontWeight: FontWeight.bold,
-          ),
-        ),
         backgroundColor: Colors.white,
         elevation: 1.0,
+        leading: IconButton(
+          icon: const Icon(Icons.person, color: Color(0xFF52ed28)),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => UserProfilePage(email: userId),
+              ),
+            );
+          },
+        ),
+        title: Center(
+          child: SizedBox(
+            height: 40, // Adjust this value to control logo height
+            child: Image.asset(
+              'assets/logos/costcaterlogo.jpg',
+              fit: BoxFit.contain,
+            ),
+          ),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.shopping_cart, color: Color(0xFF52ed28)),
@@ -273,9 +286,9 @@ class _HomePageState extends State<HomePage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _navigateToCreateTier,
-        child: const Icon(Icons.add, color: Colors.white),
         backgroundColor: const Color(0xFF52ed28),
         tooltip: 'Add New Tier',
+        child: const Icon(Icons.add, color: Colors.white),
       ),
       backgroundColor: Colors.white,
     );

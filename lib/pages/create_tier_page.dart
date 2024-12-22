@@ -16,7 +16,7 @@ class _CreateTierPageState extends State<CreateTierPage> {
   final TextEditingController _priceController = TextEditingController();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  List<Map<String, dynamic>> _items = [];
+  final List<Map<String, dynamic>> _items = [];
 
   // Add a new item to the list
   void _addItem() {

@@ -9,10 +9,10 @@ class GenerateInvoicePage extends StatelessWidget {
   final List<dynamic> cartItems;
 
   const GenerateInvoicePage({
-    Key? key,
+    super.key,
     required this.customerDetails,
     required this.cartItems,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -163,7 +163,7 @@ class GenerateInvoicePage extends StatelessWidget {
                           style: pw.TextStyle(font: font)),
                       ),
                     ],
-                  )).toList(),
+                  )),
                 ],
               ),
               pw.SizedBox(height: 20),

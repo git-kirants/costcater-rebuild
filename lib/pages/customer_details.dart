@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
@@ -9,7 +8,7 @@ class CustomerDetailsPage extends StatefulWidget {
   final List<dynamic> cartItems;
   final int noOfPlates;
 
-  CustomerDetailsPage({
+  const CustomerDetailsPage({super.key, 
     required this.cartItems,
     required double totalAmount,
     required this.noOfPlates,
@@ -481,7 +480,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                                 fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                           Text(
-                            '${plates.toStringAsFixed(0)}',
+                            plates.toStringAsFixed(0),
                             style: const TextStyle(
                                 fontSize: 16, fontWeight: FontWeight.bold),
                           ),

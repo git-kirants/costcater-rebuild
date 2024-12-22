@@ -32,7 +32,7 @@ class _CartPageState extends State<CartPage> {
       if (!snapshot.exists) return;
 
       List<dynamic> cartItems =
-          (snapshot.data() as Map<String, dynamic>)?['items'] ?? [];
+          (snapshot.data() as Map<String, dynamic>)['items'] ?? [];
 
       cartItems.removeWhere((cartItem) =>
           cartItem['item'] == item['name'] &&

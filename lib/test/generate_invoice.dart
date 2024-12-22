@@ -1,9 +1,6 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:permission_handler/permission_handler.dart';
-import 'package:open_file/open_file.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:printing/printing.dart';
 
@@ -11,7 +8,7 @@ class GenerateInvoicePage extends StatelessWidget {
   final Map<String, dynamic> customerDetails;
   final List<dynamic> cartItems;
 
-  GenerateInvoicePage({
+  GenerateInvoicePage({super.key, 
     required this.customerDetails,
     required this.cartItems,
   }) {
