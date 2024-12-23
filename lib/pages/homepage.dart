@@ -136,7 +136,7 @@ class _HomePageState extends State<HomePage> {
         toolbarHeight: screenSize.height * 0.08, // Responsive app bar height
         leading: Padding(
           padding:
-              const EdgeInsets.only(left: 16.0), // Padding for the leading icon
+              const EdgeInsets.only(left: 12.0), // Padding for the leading icon
           child: IconButton(
             icon: Icon(
               Icons.account_circle_outlined,
@@ -155,7 +155,7 @@ class _HomePageState extends State<HomePage> {
         ),
         title: Padding(
           padding: const EdgeInsets.symmetric(
-              horizontal: 16.0), // Padding for the title
+              horizontal: 12.0), // Padding for the title
           child: Center(
             child: SizedBox(
               height: screenSize.height * 0.04, // Responsive logo height
@@ -169,9 +169,9 @@ class _HomePageState extends State<HomePage> {
         actions: [
           Padding(
             padding: const EdgeInsets.only(
-                right: 16.0), // Padding for the action icon
+                right: 12.0), // Padding for the action icon
             child: Transform.translate(
-              offset: Offset(0, -1), // Move up by 10 pixels
+              offset: Offset(0, 0), // Move up by 10 pixels
               child: IconButton(
                 icon: Icon(
                   Icons.shopping_cart,
