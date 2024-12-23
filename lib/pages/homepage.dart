@@ -134,47 +134,59 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: Color.fromARGB(255, 255, 255, 255),
         elevation: 1.0,
         toolbarHeight: screenSize.height * 0.08, // Responsive app bar height
-        leading: IconButton(
-          icon: Icon(
-            Icons.account_circle_outlined,
-            color: const Color(0xFF52ed28),
-            size: iconSize + 7,
+        leading: Padding(
+          padding:
+              const EdgeInsets.only(left: 16.0), // Padding for the leading icon
+          child: IconButton(
+            icon: Icon(
+              Icons.account_circle_outlined,
+              color: const Color(0xFF52ed28),
+              size: iconSize + 7,
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => UserProfilePage(email: userId),
+                ),
+              );
+            },
           ),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => UserProfilePage(email: userId),
-              ),
-            );
-          },
         ),
-        title: Center(
-          child: SizedBox(
-            height: screenSize.height * 0.04, // Responsive logo height
-            child: Image.asset(
-              'assets/logos/costcaterlogo.png',
-              fit: BoxFit.contain,
+        title: Padding(
+          padding: const EdgeInsets.symmetric(
+              horizontal: 16.0), // Padding for the title
+          child: Center(
+            child: SizedBox(
+              height: screenSize.height * 0.04, // Responsive logo height
+              child: Image.asset(
+                'assets/logos/costcaterlogo.png',
+                fit: BoxFit.contain,
+              ),
             ),
           ),
         ),
         actions: [
-          Transform.translate(
-            offset: Offset(0, -1), // Move up by 10 pixels
-            child: IconButton(
-              icon: Icon(
-                Icons.shopping_cart,
-                color: const Color(0xFF52ed28),
-                size: iconSize + 3,
+          Padding(
+            padding: const EdgeInsets.only(
+                right: 16.0), // Padding for the action icon
+            child: Transform.translate(
+              offset: Offset(0, -1), // Move up by 10 pixels
+              child: IconButton(
+                icon: Icon(
+                  Icons.shopping_cart,
+                  color: const Color(0xFF52ed28),
+                  size: iconSize + 3,
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CartPage(userId: userId),
+                    ),
+                  );
+                },
               ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CartPage(userId: userId),
-                  ),
-                );
-              },
             ),
           ),
         ],

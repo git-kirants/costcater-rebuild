@@ -46,7 +46,8 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       if (mounted) {
-        context.showToast('Incorrect Username or Password', type: ToastType.error);
+        context.showToast('Incorrect Username or Password',
+            type: ToastType.error);
       }
     } catch (e) {
       if (mounted) {
@@ -67,24 +68,20 @@ class _LoginPageState extends State<LoginPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Replace the 'Welcome Back' text with the logo image
-              const SizedBox(height: 50), // Adjust to your preference
+              const SizedBox(height: 25), // Adjust to your preference
               Center(
-                child: Image.asset(
-                  'assets/logos/costcaterlogo.png', // Path to your logo image
-                  height: 200, // Adjust the height as necessary
-                  width: 200, // Adjust the width as necessary
+                child: Transform.translate(
+                  offset: const Offset(
+                      0, 80), // Corrected 'cosnt' to 'const' and syntax
+                  child: Image.asset(
+                    'assets/logos/costcaterlogo.png', // Path to your logo image
+                    height: 200, // Adjust the height as necessary
+                    width: 200, // Adjust the width as necessary
+                  ),
                 ),
               ),
-              const SizedBox(height: 16),
-              Text(
-                'Sign in to continue',
-                style: TextStyle(
-                  fontFamily: 'SFProDisplay',
-                  fontSize: 16,
-                  color: Colors.grey[600],
-                ),
-                textAlign: TextAlign.center,
-              ),
+
+              
               const SizedBox(height: 40),
               _buildTextField(
                 controller: emailController,
