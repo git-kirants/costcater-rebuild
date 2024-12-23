@@ -87,14 +87,17 @@ class _CartPageState extends State<CartPage> {
           }
 
           if (!snapshot.hasData || !snapshot.data!.exists) {
-            return const Center(
-              child: Text(
-                'Your cart is empty!',
-                style: TextStyle(
-                  fontSize: 18,
-                  color: Colors.black54,
-                  fontFamily: 'SF Pro',
-                ),
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Image.asset(
+                    'assets/logos/empty-cart.png',
+                    height: 300, // Adjust the height as needed
+                    width: 300, // Adjust the width as needed
+                  ),
+                  // Adds spacing between image and text
+                ],
               ),
             );
           }
@@ -106,14 +109,25 @@ class _CartPageState extends State<CartPage> {
           double totalAmount = calculateTotalAmount(cartItems);
 
           return cartItems.isEmpty
-              ? const Center(
-                  child: Text(
-                    'Your cart is empty!',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.black54,
-                      fontFamily: 'SF Pro',
-                    ),
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Image.asset(
+                        'assets/logos/empty-cart.png',
+                        height: 300, // Adjust height as needed
+                        width: 300, // Adjust width as needed
+                      ),
+                      // Spacing between image and text
+                      const Text(
+                        'Your cart is empty!',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                          fontFamily: 'SF Pro',
+                        ),
+                      ),
+                    ],
                   ),
                 )
               : Stack(

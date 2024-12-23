@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:costcater/components/toast.dart';
 
 class CreateTierPage extends StatefulWidget {
   final String email; // Accept the user's email as a parameter
@@ -25,11 +26,12 @@ class _CreateTierPageState extends State<CreateTierPage> {
     final itemPrice = double.tryParse(itemPriceText);
 
     if (itemName.isEmpty) {
-      _showSnackBar('Item name cannot be empty');
+      context.showToast('Item name cannot be empty', type: ToastType.error);
       return;
     }
     if (itemPrice == null || itemPrice <= 0) {
-      _showSnackBar('Please enter a valid price greater than zero');
+      context.showToast('Please enter a valid price greater than zero',
+          type: ToastType.error);
       return;
     }
 
@@ -78,13 +80,13 @@ class _CreateTierPageState extends State<CreateTierPage> {
         }
       });
 
-      _showSnackBar('Tier "$tierName" added successfully!', isSuccess: true);
+      context.showToast('Tier "$tierName" added successfully!');
       Navigator.pop(context, {
         'tier': tierName,
         'items': _items,
       });
     } catch (e) {
-      _showSnackBar('Error saving tier: $e');
+      context.showToast('Error saving tier: $e', type: ToastType.error);
     }
   }
 
@@ -93,11 +95,12 @@ class _CreateTierPageState extends State<CreateTierPage> {
     final tierName = _tierController.text.trim();
 
     if (tierName.isEmpty) {
-      _showSnackBar('Please provide a tier name');
+      context.showToast('Please provide a tier name', type: ToastType.info);
       return;
     }
     if (_items.isEmpty) {
-      _showSnackBar('Add at least one item to create a tier');
+      context.showToast('Add at least one item to create a tier',
+          type: ToastType.info);
       return;
     }
 
@@ -109,15 +112,6 @@ class _CreateTierPageState extends State<CreateTierPage> {
     _saveTierToFirestore(tierName, tierPrice);
   }
 
-  // Show a SnackBar with a message
-  void _showSnackBar(String message, {bool isSuccess = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isSuccess ? Colors.green : Colors.redAccent,
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {

@@ -3,9 +3,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'cart_page.dart';
 import 'create_tier_page.dart';
 import 'user_profile.dart';
+import 'package:costcater/components/toast.dart';
 
 class HomePage extends StatefulWidget {
-  final String email; // Accept email as a parameter
+  final String email;
 
   const HomePage({super.key, required this.email});
 
@@ -24,6 +25,7 @@ class _HomePageState extends State<HomePage> {
     menuTiersRef = FirebaseFirestore.instance.collection('menuTiers');
   }
 
+  // Add your existing initState and other methods here...
   // Add the entire tier to the cart
   void _addTierToCart(Map<String, dynamic> tier) async {
     try {
@@ -49,15 +51,11 @@ class _HomePageState extends State<HomePage> {
       }, SetOptions(merge: true));
 
       // Success feedback
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("${tier['tierName']} tier added to cart!")),
-      );
+      context.showToast('${tier['tierName']} added to cart successfully');
     } catch (e) {
       print("Error adding tier to cart: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text("Failed to add ${tier['tierName']} tier to cart.")),
-      );
+      context.showToast('Failed to add ${tier['tierName']} to cart',
+          type: ToastType.error);
     }
   }
 
@@ -80,14 +78,11 @@ class _HomePageState extends State<HomePage> {
       }, SetOptions(merge: true)); // Merge with existing document
 
       // Success feedback
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("${newItem['name']} added to cart!")),
-      );
+      context.showToast('${newItem['name']} added to cart successfully');
     } catch (e) {
       print("Error adding item to cart: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to add ${newItem['name']} to cart.")),
-      );
+      context.showToast('Failed to add ${newItem['name']} to cart',
+          type: ToastType.error);
     }
   }
 
@@ -118,21 +113,33 @@ class _HomePageState extends State<HomePage> {
     );
 
     if (result != null && result is Map<String, dynamic>) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${result['tier']} tier created!')),
-      );
+      context.showToast('${result['tier']} added to cart successfully');
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Get the screen size
+    final Size screenSize = MediaQuery.of(context).size;
+
+    // Calculate responsive values
+    final double maxWidth =
+        screenSize.width > 1200 ? 1200 : screenSize.width * 1;
+    final double cardPadding = screenSize.width > 600 ? 16.0 : 8.0;
+    final double fontSize = screenSize.width > 600 ? 18.0 : 16.0;
+    final double iconSize = screenSize.width > 600 ? 28.0 : 24.0;
+
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Color.fromARGB(255, 255, 255, 255),
         elevation: 1.0,
+        toolbarHeight: screenSize.height * 0.08, // Responsive app bar height
         leading: IconButton(
-          icon: const Icon(Icons.account_circle_outlined,
-              color: Color(0xFF52ed28)),
+          icon: Icon(
+            Icons.account_circle_outlined,
+            color: const Color(0xFF52ed28),
+            size: iconSize + 7,
+          ),
           onPressed: () {
             Navigator.push(
               context,
@@ -144,7 +151,7 @@ class _HomePageState extends State<HomePage> {
         ),
         title: Center(
           child: SizedBox(
-            height: 40, // Adjust this value to control logo height
+            height: screenSize.height * 0.04, // Responsive logo height
             child: Image.asset(
               'assets/logos/costcaterlogo.png',
               fit: BoxFit.contain,
@@ -152,144 +159,217 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.shopping_cart, color: Color(0xFF52ed28)),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CartPage(userId: userId),
-                ),
-              );
-            },
+          Transform.translate(
+            offset: Offset(0, -1), // Move up by 10 pixels
+            child: IconButton(
+              icon: Icon(
+                Icons.shopping_cart,
+                color: const Color(0xFF52ed28),
+                size: iconSize + 3,
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CartPage(userId: userId),
+                  ),
+                );
+              },
+            ),
           ),
         ],
       ),
-      body: StreamBuilder<DocumentSnapshot>(
-        stream:
-            menuTiersRef.doc(userId).snapshots(), // Real-time Firestore stream
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: Center(
+        child: Container(
+          constraints: BoxConstraints(maxWidth: maxWidth),
+          child: StreamBuilder<DocumentSnapshot>(
+            stream: menuTiersRef.doc(userId).snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-          if (!snapshot.hasData || !snapshot.data!.exists) {
-            return const Center(child: Text("No menu tiers available."));
-          }
-
-          // Extract and parse tier data
-          final data = snapshot.data!.data() as Map<String, dynamic>;
-          final List<dynamic> tiers = data['tiers'] ?? [];
-
-          // Convert Firestore tier data into a list of usable maps
-          List<Map<String, dynamic>> parsedTiers = tiers.map((tier) {
-            final items = tier['tierItems'] ?? [];
-            return {
-              'tierName': tier['tierName'] ?? 'Unnamed Tier',
-              'tierPrice': tier['tierPrice'] ?? 0,
-              'items': items.map((item) {
-                return {
-                  'name': item['itemName'] ?? 'Unnamed Item',
-                  'price': item['itemPrice'] is String
-                      ? double.tryParse(item['itemPrice']) ?? 0.0
-                      : (item['itemPrice'] ?? 0).toDouble(),
-                };
-              }).toList(),
-            };
-          }).toList();
-
-          return ListView.builder(
-            itemCount: parsedTiers.length,
-            itemBuilder: (context, index) {
-              var tier = parsedTiers[index];
-              return Card(
-                margin: const EdgeInsets.all(8.0),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.0),
-                ),
-                elevation: 3,
-                child: Column(
-                  children: [
-                    ExpansionTile(
-                      backgroundColor: Colors.white,
-                      iconColor: const Color(0xFF52ed28),
-                      title: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          // Tier Name
-                          Text(
-                            '${tier['tierName']}',
-                            style: const TextStyle(
-                              fontFamily: 'SFPro',
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          // Buttons to the right
-                          Row(
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.add),
-                                color: Color(0xFF52ed28),
-                                onPressed: () => _addTierToCart(tier),
-                              ),
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.remove_circle_outline,
-                                  color: Colors.red,
-                                ),
-                                onPressed: () => _removeTierFromDatabase(tier),
-                              ),
-                            ],
-                          ),
-                        ],
+              if (!snapshot.hasData || !snapshot.data!.exists) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Image.asset(
+                        'assets/logos/empty-menu.png',
+                        width: 500,
+                        height: 500,
                       ),
-                      children: [
-                        ...tier['items'].map<Widget>((item) {
-                          return ListTile(
-                            title: Text(
-                              item['name'] ?? 'Unnamed Item',
-                              style: const TextStyle(
-                                fontFamily: 'SFPro',
-                                fontSize: 16,
-                                color: Colors.black87,
+                    ],
+                  ),
+                );
+              }
+
+              final data = snapshot.data!.data() as Map<String, dynamic>;
+              final List<dynamic> tiers = data['tiers'] ?? [];
+
+              List<Map<String, dynamic>> parsedTiers = tiers.map((tier) {
+                final items = tier['tierItems'] ?? [];
+                return {
+                  'tierName': tier['tierName'] ?? 'Unnamed Tier',
+                  'tierPrice': tier['tierPrice'] ?? 0,
+                  'items': items.map((item) {
+                    return {
+                      'name': item['itemName'] ?? 'Unnamed Item',
+                      'price': item['itemPrice'] is String
+                          ? double.tryParse(item['itemPrice']) ?? 0.0
+                          : (item['itemPrice'] ?? 0).toDouble(),
+                    };
+                  }).toList(),
+                };
+              }).toList();
+
+              return ListView.builder(
+                padding: EdgeInsets.all(cardPadding),
+                itemCount: parsedTiers.length,
+                itemBuilder: (context, index) {
+                  var tier = parsedTiers[index];
+                  return Container(
+                    margin: EdgeInsets.all(cardPadding),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(15.0),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.3),
+                          spreadRadius: 2,
+                          blurRadius: 5,
+                          offset: Offset(0, 3),
+                        ),
+                      ],
+                      border: Border.all(
+                        color: Colors.grey.withOpacity(0.3),
+                        width: 0.1,
+                      ),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(
+                          12.0), // Match the card border radius
+                      child: ExpansionTile(
+                        collapsedBackgroundColor: const Color(0xFFF7F7F9),
+                        backgroundColor: Colors.white,
+                        iconColor: const Color(0xFF52ed28),
+                        collapsedIconColor: Colors.black54,
+                        title: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${tier['tierName']}',
+                                style: TextStyle(
+                                  fontFamily: 'SFPro',
+                                  fontSize: fontSize,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
                               ),
                             ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
+                            Row(
                               children: [
-                                Text(
-                                  '\$${item['price']}',
-                                  style: const TextStyle(
-                                    fontFamily: 'SFPro',
-                                    fontSize: 16,
-                                    color: Colors.black87,
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.add_circle_outline,
+                                    size: iconSize,
                                   ),
+                                  color: const Color(0xFF52ed28),
+                                  onPressed: () => _addTierToCart(tier),
                                 ),
                                 IconButton(
-                                  icon: const Icon(Icons.add_shopping_cart),
-                                  color: Color(0xFF52ed28),
-                                  onPressed: () => _addItemToCart(userId, item),
+                                  icon: Icon(
+                                    Icons.remove_circle_outline,
+                                    size: iconSize,
+                                  ),
+                                  color: Colors.red,
+                                  onPressed: () =>
+                                      _removeTierFromDatabase(tier),
                                 ),
                               ],
                             ),
-                          );
-                        }).toList(),
-                      ],
+                          ],
+                        ),
+                        children: [
+                          Divider(
+                            thickness: 1,
+                            height: 1,
+                            color: Colors.white,
+                          ),
+                          ...tier['items'].map<Widget>((item) {
+                            return Container(
+                              decoration: BoxDecoration(
+                                border: Border(
+                                  bottom: BorderSide(
+                                    color: Colors.grey.withOpacity(0.3),
+                                    width: 1,
+                                  ),
+                                ),
+                              ),
+                              child: ListTile(
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: cardPadding * 1.5,
+                                  vertical: cardPadding / 2,
+                                ),
+                                title: Text(
+                                  item['name'] ?? 'Unnamed Item',
+                                  style: TextStyle(
+                                    fontFamily: 'SFPro',
+                                    fontSize: fontSize,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      '\$${item['price']}',
+                                      style: TextStyle(
+                                        fontFamily: 'SFPro',
+                                        fontSize: fontSize,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                    SizedBox(width: 8),
+                                    IconButton(
+                                      icon: Icon(
+                                        Icons.add_shopping_cart_outlined,
+                                        size: iconSize,
+                                      ),
+                                      color: const Color(0xFF52ed28),
+                                      onPressed: () =>
+                                          _addItemToCart(userId, item),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ],
+                      ),
                     ),
-                  ],
-                ),
+                  );
+                },
               );
             },
-          );
-        },
+          ),
+        ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _navigateToCreateTier,
-        backgroundColor: const Color(0xFF52ed28),
-        tooltip: 'Add New Tier',
-        child: const Icon(Icons.add, color: Colors.white),
+      floatingActionButton: SizedBox(
+        height: screenSize.width > 600 ? 64.0 : 56.0,
+        width: screenSize.width > 600 ? 64.0 : 56.0,
+        child: FloatingActionButton(
+          onPressed: _navigateToCreateTier,
+          backgroundColor: const Color(0xFF52ed28),
+          tooltip: 'Add New Tier',
+          child: Icon(
+            Icons.add,
+            color: Colors.white,
+            size: iconSize,
+          ),
+        ),
       ),
       backgroundColor: Colors.white,
     );

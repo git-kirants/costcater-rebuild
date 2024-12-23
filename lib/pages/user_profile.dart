@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'login_page.dart';
 import 'dart:io';
+import 'package:costcater/components/toast.dart';
 
 class UserProfilePage extends StatefulWidget {
   final String email;
@@ -60,9 +61,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to load user data')),
-      );
+      context.showToast('Failed to load user data', type: ToastType.error);
     }
   }
 
@@ -80,13 +79,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
         _isEditingFSSAI = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('FSSAI number updated successfully')),
-      );
+      context.showToast('FSSAI number updated successfully');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to update FSSAI number')),
-      );
+      context.showToast('Failed to update FSSAI number', type: ToastType.error);
     }
   }
 
@@ -104,14 +99,10 @@ class _UserProfilePageState extends State<UserProfilePage> {
         _isEditingTerms = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Terms and Conditions updated successfully')),
-      );
+      context.showToast('Terms and Conditions updated successfully');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to update Terms and Conditions')),
-      );
+      context.showToast('Failed to update Terms and Conditions',
+          type: ToastType.error);
     }
   }
 
@@ -126,9 +117,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to load profile picture')),
-      );
+      context.showToast('Failed to load profile picture',
+          type: ToastType.error);
     }
   }
 
@@ -151,9 +141,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
             '${widget.email}_profile_picture', pickedFile.path);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to pick image')),
-      );
+      context.showToast('Failed to pick image', type: ToastType.error);
     }
   }
 

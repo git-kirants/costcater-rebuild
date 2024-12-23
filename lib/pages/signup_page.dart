@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:costcater/components/toast.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -24,23 +25,19 @@ class _SignupPageState extends State<SignupPage> {
         passwordController.text.isEmpty ||
         confirmPasswordController.text.isEmpty ||
         nameController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all fields')),
-      );
+      context.showToast('Please fill in all fields', type: ToastType.info);
+
       return;
     }
 
     if (passwordController.text != confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match')),
-      );
+      context.showToast('Passwords do not match', type: ToastType.error);
       return;
     }
 
     if (passwordController.text.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password must be at least 6 characters')),
-      );
+      context.showToast('Password must be at least 6 characters',
+          type: ToastType.info);
       return;
     }
 
@@ -56,10 +53,8 @@ class _SignupPageState extends State<SignupPage> {
           .get();
 
       if (userDoc.exists) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('An account with this email already exists')),
-        );
+        context.showToast('An account with this email already exists',
+            type: ToastType.info);
         setState(() {
           isLoading = false;
         });
@@ -82,9 +77,7 @@ class _SignupPageState extends State<SignupPage> {
         'created_at': FieldValue.serverTimestamp(),
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Signup Successful')),
-      );
+      context.showToast('Signup Successful');
 
       Navigator.pop(context);
     } on FirebaseAuthException catch (e) {
@@ -97,13 +90,9 @@ class _SignupPageState extends State<SignupPage> {
         errorMessage = 'Please enter a valid email address.';
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMessage)),
-      );
+      context.showToast(errorMessage, type: ToastType.error);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unexpected error: $e')),
-      );
+      context.showToast('Unexpected error: $e', type: ToastType.error);
     } finally {
       setState(() {
         isLoading = false;

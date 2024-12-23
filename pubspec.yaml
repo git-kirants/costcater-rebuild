@@ -77,3 +77,6 @@ flutter:
   assets:
     - assets/logos/costcaterlogo.png
     - assets/logos/smalllogo.png
+    - assets/logos/empty-cart.png
+    - assets/logos/empty-menu.png
+

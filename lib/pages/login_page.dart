@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'signup_page.dart';
 import 'homepage.dart';
+import 'package:costcater/components/toast.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -17,9 +18,8 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> login() async {
     if (emailController.text.isEmpty || passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter both email and password')),
-      );
+      context.showToast('Please enter both email and password',
+          type: ToastType.info);
       return;
     }
 
@@ -28,11 +28,7 @@ class _LoginPageState extends State<LoginPage> {
         email: emailController.text,
         password: passwordController.text,
       );
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Login Successful')),
-      );
-
+      context.showToast('Login Successful');
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -50,15 +46,11 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMessage)),
-        );
+        context.showToast('Incorrect Username or Password', type: ToastType.error);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Unexpected error: $e')),
-        );
+        context.showToast('Unexpected error: $e', type: ToastType.error);
       }
     }
   }
