@@ -112,7 +112,6 @@ class _CreateTierPageState extends State<CreateTierPage> {
     _saveTierToFirestore(tierName, tierPrice);
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(

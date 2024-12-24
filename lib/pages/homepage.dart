@@ -4,6 +4,7 @@ import 'cart_page.dart';
 import 'create_tier_page.dart';
 import 'user_profile.dart';
 import 'package:costcater/components/toast.dart';
+import 'edit_tiers_modal.dart';
 
 class HomePage extends StatefulWidget {
   final String email;
@@ -26,6 +27,215 @@ class _HomePageState extends State<HomePage> {
   }
 
   // Add your existing initState and other methods here...
+  Widget _buildHeader(
+    BuildContext context,
+    TextEditingController tierNameController,
+    List<Map<String, dynamic>> items,
+    String originalName,
+    StateSetter setState,
+    VoidCallback disposeControllers,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: const BoxDecoration(
+        color: Color(0xFFF7F7F9),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            'Edit $originalName',
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.check),
+                color: const Color(0xFF52ed28),
+                onPressed: () async {
+                  FocusScope.of(context).unfocus();
+
+                  try {
+                    // Collect updated items
+                    List<Map<String, dynamic>> updatedTierItems =
+                        items.map((item) {
+                      final name = item['nameController'].text.trim();
+                      final priceText = item['priceController'].text.trim();
+                      final price = double.tryParse(priceText) ?? 0.0;
+
+                      if (name.isEmpty) {
+                        throw Exception('Item name cannot be empty.');
+                      }
+
+                      return {
+                        'itemName': name,
+                        'itemPrice': price,
+                      };
+                    }).toList();
+
+                    // Calculate new tier price
+                    double tierPrice = updatedTierItems.fold(
+                      0.0,
+                      (sum, item) => sum + item['itemPrice'],
+                    );
+
+                    // Update in Firebase
+                    await FirebaseFirestore.instance
+                        .runTransaction((transaction) async {
+                      final docRef = FirebaseFirestore.instance
+                          .collection('menuTiers')
+                          .doc(
+                              'userId'); // Replace 'userId' with the actual user ID
+                      final snapshot = await transaction.get(docRef);
+
+                      if (snapshot.exists) {
+                        List<dynamic> existingTiers = snapshot['tiers'] ?? [];
+                        int tierIndex = existingTiers
+                            .indexWhere((t) => t['tierName'] == originalName);
+
+                        if (tierIndex != -1) {
+                          existingTiers[tierIndex] = {
+                            'tierName': tierNameController.text,
+                            'tierPrice': tierPrice,
+                            'tierItems': updatedTierItems,
+                          };
+
+                          transaction.update(docRef, {'tiers': existingTiers});
+                        }
+                      }
+                    });
+
+                    if (context.mounted) {
+                      Navigator.pop(context, true);
+                      context.showToast('Tier updated successfully');
+                    }
+                  } catch (e) {
+                    print("Error updating tier: $e");
+                    if (context.mounted) {
+                      context.showToast(
+                        'Failed to update tier',
+                        type: ToastType.error,
+                      );
+                    }
+                  } finally {
+                    disposeControllers();
+                  }
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.close),
+                color: Colors.grey,
+                onPressed: () {
+                  disposeControllers();
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContentSection(
+    TextEditingController tierNameController,
+    List<Map<String, dynamic>> items,
+    StateSetter setState,
+  ) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Tier Name Input
+          TextField(
+            controller: tierNameController,
+            decoration: const InputDecoration(
+              labelText: 'Tier Name',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 20),
+          // Items List
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Items',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline),
+                color: const Color(0xFF52ed28),
+                onPressed: () {
+                  setState(() {
+                    items.add({
+                      'nameController': TextEditingController(),
+                      'priceController': TextEditingController(),
+                    });
+                  });
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ...List.generate(
+            items.length,
+            (index) => Card(
+              margin: const EdgeInsets.only(bottom: 8.0),
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: TextField(
+                        controller: items[index]['nameController'],
+                        decoration: const InputDecoration(
+                          labelText: 'Item Name',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: items[index]['priceController'],
+                        decoration: const InputDecoration(
+                          labelText: 'Price',
+                          prefixText: '\$',
+                        ),
+                        keyboardType: TextInputType.number,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.remove_circle_outline),
+                      color: Colors.red,
+                      onPressed: () {
+                        setState(() {
+                          items.removeAt(index);
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // Add the entire tier to the cart
   void _addTierToCart(Map<String, dynamic> tier) async {
     try {
@@ -298,6 +508,21 @@ class _HomePageState extends State<HomePage> {
                                   color: Colors.red,
                                   onPressed: () =>
                                       _removeTierFromDatabase(tier),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.edit),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => EditTiersPage(
+                                          tierName: tier[
+                                              'tierName'], // Pass only the tier name
+                                          email: widget.email, // Pass the email
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 ),
                               ],
                             ),
