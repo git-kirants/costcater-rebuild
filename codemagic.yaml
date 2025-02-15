@@ -1,0 +1,32 @@
+workflows:
+  ios-workflow:
+    name: iOS Workflow
+    instance_type: mac_mini_m1
+    max_build_duration: 60
+    environment:
+      ios_signing:
+        distribution_type: development
+        bundle_identifier: com.costcater.app
+      vars:
+        BUNDLE_ID: "com.costcater.app"
+      flutter: stable
+    scripts:
+      - name: Set up code signing settings
+        script: |
+          keychain initialize
+      - name: Get Flutter packages
+        script: |
+          flutter packages pub get
+      - name: Flutter build ipa
+        script: |
+          flutter build ipa --release \
+            --build-number=$(($(date +%s)/10)) \
+            --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      email:
+        recipients:
+          - your.email@example.com # Replace with your email
+      app_store_connect:
+        should_submit_to_testflight: true
